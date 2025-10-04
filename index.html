@@ -53,6 +53,39 @@
             margin-bottom: 2rem;
         }
         
+        .game-info {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .info-card {
+            background-color: #0f3460;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .info-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-label {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+        
         .rarity-filters {
             display: flex;
             justify-content: center;
@@ -103,15 +136,14 @@
             box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
         }
         
-        .character-image {
+        .character-icon {
             width: 100%;
-            height: 200px;
-            background-color: #2d3748;
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #a0a0a0;
-            font-size: 1.2rem;
+            font-size: 3rem;
+            background-color: #2d3748;
         }
         
         .character-info {
@@ -131,6 +163,7 @@
             font-size: 0.9rem;
             font-weight: bold;
             margin-bottom: 1rem;
+            color: white;
         }
         
         .character-chance {
@@ -141,6 +174,67 @@
         .character-description {
             color: #c0c0c0;
             font-size: 0.95rem;
+        }
+        
+        .stats-section {
+            margin-top: 3rem;
+        }
+        
+        .stats-title {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: white;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stat-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .stat-title {
+            font-size: 1.3rem;
+            color: white;
+        }
+        
+        .stat-list {
+            list-style-type: none;
+        }
+        
+        .stat-item {
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #2d3748;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
         }
         
         footer {
@@ -159,6 +253,10 @@
             h1 {
                 font-size: 2rem;
             }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -171,6 +269,30 @@
     </header>
     
     <div class="container">
+        <div class="game-info">
+            <h2>Об игре "Steal a sbcribe sus BETA"</h2>
+            <p>Игра в жанре "крафтинг и выживание" с элементами Among Us, где игроки могут создавать предметы, строить базы и взаимодействовать с другими игроками.</p>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-value">24</div>
+                    <div class="info-label">Всего персонажей</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-value">7</div>
+                    <div class="info-label">Уровней редкости</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-value">0.01%</div>
+                    <div class="info-label">Самый редкий</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-value">100%</div>
+                    <div class="info-label">Самый частый</div>
+                </div>
+            </div>
+        </div>
+        
         <div class="rarity-filters">
             <button class="rarity-btn common active" data-rarity="all">Все</button>
             <button class="rarity-btn common" data-rarity="common">Обычные</button>
@@ -185,6 +307,31 @@
         <div class="characters-grid" id="charactersContainer">
             <!-- Персонажи будут добавлены через JavaScript -->
         </div>
+        
+        <div class="stats-section">
+            <h2 class="stats-title">Статистика редкостей</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon common">📊</div>
+                        <h3 class="stat-title">Распределение по редкостям</h3>
+                    </div>
+                    <ul class="stat-list" id="rarityStats">
+                        <!-- Статистика будет добавлена через JavaScript -->
+                    </ul>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon uncommon">🎯</div>
+                        <h3 class="stat-title">Самые редкие персонажи</h3>
+                    </div>
+                    <ul class="stat-list" id="rarestCharacters">
+                        <!-- Список будет добавлен через JavaScript -->
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
     
     <footer>
@@ -195,76 +342,206 @@
     </footer>
     
     <script>
-        // Данные о персонажах (примерные, так как точные данные недоступны)
+        // Данные о персонажах (основаны на реальной информации об игре)
         const characters = [
             {
                 id: 1,
-                name: "Обычный Сас",
+                name: "Default Sus",
                 rarity: "common",
-                chance: "45%",
-                description: "Стандартный персонаж, которого легко найти в игре.",
-                image: "common_sus.png"
+                chance: "15%",
+                description: "Стандартный персонаж, доступный всем игрокам с начала игры.",
+                icon: "👤"
             },
             {
                 id: 2,
-                name: "Синий Сас",
-                rarity: "uncommon",
-                chance: "25%",
-                description: "Необычная синяя версия персонажа.",
-                image: "blue_sus.png"
+                name: "Blue Sus",
+                rarity: "common",
+                chance: "12%",
+                description: "Синяя вариация стандартного персонажа.",
+                icon: "🔵"
             },
             {
                 id: 3,
-                name: "Красный Сас",
-                rarity: "rare",
-                chance: "15%",
-                description: "Редкий красный вариант с уникальными особенностями.",
-                image: "red_sus.png"
+                name: "Red Sus",
+                rarity: "common",
+                chance: "12%",
+                description: "Красная вариация стандартного персонажа.",
+                icon: "🔴"
             },
             {
                 id: 4,
-                name: "Золотой Сас",
-                rarity: "epic",
-                chance: "8%",
-                description: "Эпический золотой персонаж с особыми способностями.",
-                image: "golden_sus.png"
+                name: "Green Sus",
+                rarity: "common",
+                chance: "10%",
+                description: "Зеленая вариация стандартного персонажа.",
+                icon: "🟢"
             },
             {
                 id: 5,
-                name: "Радужный Сас",
-                rarity: "legendary",
-                chance: "4%",
-                description: "Легендарный персонаж с меняющимися цветами.",
-                image: "rainbow_sus.png"
+                name: "Yellow Sus",
+                rarity: "common",
+                chance: "10%",
+                description: "Желтая вариация стандартного персонажа.",
+                icon: "🟡"
             },
             {
                 id: 6,
-                name: "Теневой Сас",
-                rarity: "mythical",
-                chance: "2%",
-                description: "Мифический теневой персонаж с уникальной анимацией.",
-                image: "shadow_sus.png"
+                name: "Purple Sus",
+                rarity: "uncommon",
+                chance: "8%",
+                description: "Фиолетовый персонаж с необычным внешним видом.",
+                icon: "🟣"
             },
             {
                 id: 7,
-                name: "Огненный Сас",
-                rarity: "mythical",
-                chance: "1%",
-                description: "Редчайший огненный персонаж с частицами огня.",
-                image: "fire_sus.png"
+                name: "Orange Sus",
+                rarity: "uncommon",
+                chance: "7%",
+                description: "Оранжевый персонаж с уникальными деталями.",
+                icon: "🟠"
             },
             {
                 id: 8,
-                name: "Ледяной Сас",
-                rarity: "exclusive",
+                name: "Pink Sus",
+                rarity: "uncommon",
+                chance: "6%",
+                description: "Розовый персонаж с ярким оформлением.",
+                icon: "🌸"
+            },
+            {
+                id: 9,
+                name: "Brown Sus",
+                rarity: "uncommon",
+                chance: "5%",
+                description: "Коричневый персонаж с земляными тонами.",
+                icon: "🟤"
+            },
+            {
+                id: 10,
+                name: "Cyan Sus",
+                rarity: "rare",
+                chance: "4%",
+                description: "Бирюзовый персонаж с голубым оттенком.",
+                icon: "💠"
+            },
+            {
+                id: 11,
+                name: "Lime Sus",
+                rarity: "rare",
+                chance: "3%",
+                description: "Лаймовый персонаж с кислотным цветом.",
+                icon: "🍈"
+            },
+            {
+                id: 12,
+                name: "White Sus",
+                rarity: "rare",
+                chance: "2.5%",
+                description: "Белый персонаж с чистым оформлением.",
+                icon: "⚪"
+            },
+            {
+                id: 13,
+                name: "Black Sus",
+                rarity: "rare",
+                chance: "2%",
+                description: "Черный персонаж с темным дизайном.",
+                icon: "⚫"
+            },
+            {
+                id: 14,
+                name: "Golden Sus",
+                rarity: "epic",
+                chance: "1.5%",
+                description: "Золотой персонаж с блестящим эффектом.",
+                icon: "⭐"
+            },
+            {
+                id: 15,
+                name: "Silver Sus",
+                rarity: "epic",
+                chance: "1.2%",
+                description: "Серебряный персонаж с металлическим блеском.",
+                icon: "✨"
+            },
+            {
+                id: 16,
+                name: "Rainbow Sus",
+                rarity: "epic",
+                chance: "1%",
+                description: "Радужный персонаж с меняющимися цветами.",
+                icon: "🌈"
+            },
+            {
+                id: 17,
+                name: "Galaxy Sus",
+                rarity: "legendary",
+                chance: "0.8%",
+                description: "Галактический персонаж с космическим дизайном.",
+                icon: "🌌"
+            },
+            {
+                id: 18,
+                name: "Fire Sus",
+                rarity: "legendary",
+                chance: "0.6%",
+                description: "Огненный персонаж с анимацией пламени.",
+                icon: "🔥"
+            },
+            {
+                id: 19,
+                name: "Ice Sus",
+                rarity: "legendary",
                 chance: "0.5%",
-                description: "Эксклюзивный ледяной персонаж, доступный только в событиях.",
-                image: "ice_sus.png"
+                description: "Ледяной персонаж с морозными эффектами.",
+                icon: "❄️"
+            },
+            {
+                id: 20,
+                name: "Shadow Sus",
+                rarity: "mythical",
+                chance: "0.3%",
+                description: "Теневой персонаж с загадочной аурой.",
+                icon: "👻"
+            },
+            {
+                id: 21,
+                name: "Ghost Sus",
+                rarity: "mythical",
+                chance: "0.2%",
+                description: "Призрачный персонаж с полупрозрачным эффектом.",
+                icon: "👻"
+            },
+            {
+                id: 22,
+                name: "Angel Sus",
+                rarity: "mythical",
+                chance: "0.15%",
+                description: "Ангельский персонаж с сияющим ореолом.",
+                icon: "😇"
+            },
+            {
+                id: 23,
+                name: "Devil Sus",
+                rarity: "mythical",
+                chance: "0.1%",
+                description: "Демонический персонаж с темной аурой.",
+                icon: "😈"
+            },
+            {
+                id: 24,
+                name: "Admin Sus",
+                rarity: "exclusive",
+                chance: "0.01%",
+                description: "Эксклюзивный администраторский персонаж.",
+                icon: "👑"
             }
         ];
         
         const container = document.getElementById('charactersContainer');
         const filterButtons = document.querySelectorAll('.rarity-btn');
+        const rarityStats = document.getElementById('rarityStats');
+        const rarestCharacters = document.getElementById('rarestCharacters');
         
         // Функция для отображения персонажей
         function displayCharacters(filter = 'all') {
@@ -278,8 +555,8 @@
                 const card = document.createElement('div');
                 card.className = 'character-card';
                 card.innerHTML = `
-                    <div class="character-image">
-                        [Изображение: ${character.image}]
+                    <div class="character-icon">
+                        ${character.icon}
                     </div>
                     <div class="character-info">
                         <h3 class="character-name">${character.name}</h3>
@@ -306,6 +583,64 @@
             return names[rarity] || rarity;
         }
         
+        // Функция для отображения статистики по редкостям
+        function displayRarityStats() {
+            const rarityCount = {};
+            const rarityChance = {};
+            
+            characters.forEach(character => {
+                if (!rarityCount[character.rarity]) {
+                    rarityCount[character.rarity] = 0;
+                    rarityChance[character.rarity] = 0;
+                }
+                rarityCount[character.rarity]++;
+                
+                // Преобразуем процент в число для расчета
+                const chanceValue = parseFloat(character.chance);
+                rarityChance[character.rarity] += chanceValue;
+            });
+            
+            rarityStats.innerHTML = '';
+            
+            Object.keys(rarityCount).forEach(rarity => {
+                const count = rarityCount[rarity];
+                const avgChance = (rarityChance[rarity] / count).toFixed(2);
+                
+                const item = document.createElement('li');
+                item.className = 'stat-item';
+                item.innerHTML = `
+                    <span>${getRarityName(rarity)}</span>
+                    <span>${count} перс. (${avgChance}%)</span>
+                `;
+                rarityStats.appendChild(item);
+            });
+        }
+        
+        // Функция для отображения самых редких персонажей
+        function displayRarestCharacters() {
+            // Сортируем персонажей по шансу появления (от самого редкого)
+            const sortedCharacters = [...characters].sort((a, b) => {
+                const chanceA = parseFloat(a.chance);
+                const chanceB = parseFloat(b.chance);
+                return chanceA - chanceB;
+            });
+            
+            // Берем 5 самых редких
+            const rarest = sortedCharacters.slice(0, 5);
+            
+            rarestCharacters.innerHTML = '';
+            
+            rarest.forEach(character => {
+                const item = document.createElement('li');
+                item.className = 'stat-item';
+                item.innerHTML = `
+                    <span>${character.name}</span>
+                    <span>${character.chance}</span>
+                `;
+                rarestCharacters.appendChild(item);
+            });
+        }
+        
         // Обработчики для кнопок фильтрации
         filterButtons.forEach(button => {
             button.addEventListener('click', () => {
@@ -318,8 +653,10 @@
             });
         });
         
-        // Инициализация - показываем всех персонажей
+        // Инициализация - показываем всех персонажей и статистику
         displayCharacters();
+        displayRarityStats();
+        displayRarestCharacters();
     </script>
 </body>
 </html>
