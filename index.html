@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steal a sbcribe sus BETA - Редкости персонажей</title>
+    <style>
+        :root {
+            --common-color: #969696;
+            --uncommon-color: #2ecc71;
+            --rare-color: #3498db;
+            --epic-color: #9b59b6;
+            --legendary-color: #f1c40f;
+            --mythical-color: #e74c3c;
+            --exclusive-color: #e67e22;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #1a1a2e;
+            color: #f0f0f0;
+            line-height: 1.6;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #0f3460, #1a1a2e);
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0a0a0;
+            margin-bottom: 2rem;
+        }
+        
+        .rarity-filters {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .rarity-btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        .rarity-btn.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+        
+        .common { background-color: var(--common-color); }
+        .uncommon { background-color: var(--uncommon-color); }
+        .rare { background-color: var(--rare-color); }
+        .epic { background-color: var(--epic-color); }
+        .legendary { background-color: var(--legendary-color); color: #333; }
+        .mythical { background-color: var(--mythical-color); }
+        .exclusive { background-color: var(--exclusive-color); }
+        
+        .characters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+        
+        .character-card {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .character-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .character-image {
+            width: 100%;
+            height: 200px;
+            background-color: #2d3748;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a0a0a0;
+            font-size: 1.2rem;
+        }
+        
+        .character-info {
+            padding: 1.5rem;
+        }
+        
+        .character-name {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+        
+        .character-rarity {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .character-chance {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .character-description {
+            color: #c0c0c0;
+            font-size: 0.95rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            background-color: #0f3460;
+            color: #a0a0a0;
+        }
+        
+        @media (max-width: 768px) {
+            .characters-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Steal a sbcribe sus BETA</h1>
+            <p class="subtitle">Полный список персонажей и их редкостей</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="rarity-filters">
+            <button class="rarity-btn common active" data-rarity="all">Все</button>
+            <button class="rarity-btn common" data-rarity="common">Обычные</button>
+            <button class="rarity-btn uncommon" data-rarity="uncommon">Необычные</button>
+            <button class="rarity-btn rare" data-rarity="rare">Редкие</button>
+            <button class="rarity-btn epic" data-rarity="epic">Эпические</button>
+            <button class="rarity-btn legendary" data-rarity="legendary">Легендарные</button>
+            <button class="rarity-btn mythical" data-rarity="mythical">Мифические</button>
+            <button class="rarity-btn exclusive" data-rarity="exclusive">Эксклюзивные</button>
+        </div>
+        
+        <div class="characters-grid" id="charactersContainer">
+            <!-- Персонажи будут добавлены через JavaScript -->
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>Информация основана на анализе игры "Steal a sbcribe sus BETA" в Roblox</p>
+            <p>Данные могут изменяться с обновлениями игры</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Данные о персонажах (примерные, так как точные данные недоступны)
+        const characters = [
+            {
+                id: 1,
+                name: "Обычный Сас",
+                rarity: "common",
+                chance: "45%",
+                description: "Стандартный персонаж, которого легко найти в игре.",
+                image: "common_sus.png"
+            },
+            {
+                id: 2,
+                name: "Синий Сас",
+                rarity: "uncommon",
+                chance: "25%",
+                description: "Необычная синяя версия персонажа.",
+                image: "blue_sus.png"
+            },
+            {
+                id: 3,
+                name: "Красный Сас",
+                rarity: "rare",
+                chance: "15%",
+                description: "Редкий красный вариант с уникальными особенностями.",
+                image: "red_sus.png"
+            },
+            {
+                id: 4,
+                name: "Золотой Сас",
+                rarity: "epic",
+                chance: "8%",
+                description: "Эпический золотой персонаж с особыми способностями.",
+                image: "golden_sus.png"
+            },
+            {
+                id: 5,
+                name: "Радужный Сас",
+                rarity: "legendary",
+                chance: "4%",
+                description: "Легендарный персонаж с меняющимися цветами.",
+                image: "rainbow_sus.png"
+            },
+            {
+                id: 6,
+                name: "Теневой Сас",
+                rarity: "mythical",
+                chance: "2%",
+                description: "Мифический теневой персонаж с уникальной анимацией.",
+                image: "shadow_sus.png"
+            },
+            {
+                id: 7,
+                name: "Огненный Сас",
+                rarity: "mythical",
+                chance: "1%",
+                description: "Редчайший огненный персонаж с частицами огня.",
+                image: "fire_sus.png"
+            },
+            {
+                id: 8,
+                name: "Ледяной Сас",
+                rarity: "exclusive",
+                chance: "0.5%",
+                description: "Эксклюзивный ледяной персонаж, доступный только в событиях.",
+                image: "ice_sus.png"
+            }
+        ];
+        
+        const container = document.getElementById('charactersContainer');
+        const filterButtons = document.querySelectorAll('.rarity-btn');
+        
+        // Функция для отображения персонажей
+        function displayCharacters(filter = 'all') {
+            container.innerHTML = '';
+            
+            const filteredCharacters = filter === 'all' 
+                ? characters 
+                : characters.filter(char => char.rarity === filter);
+            
+            filteredCharacters.forEach(character => {
+                const card = document.createElement('div');
+                card.className = 'character-card';
+                card.innerHTML = `
+                    <div class="character-image">
+                        [Изображение: ${character.image}]
+                    </div>
+                    <div class="character-info">
+                        <h3 class="character-name">${character.name}</h3>
+                        <span class="character-rarity ${character.rarity}">${getRarityName(character.rarity)}</span>
+                        <p class="character-chance">Шанс появления: <strong>${character.chance}</strong></p>
+                        <p class="character-description">${character.description}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        // Функция для получения русского названия редкости
+        function getRarityName(rarity) {
+            const names = {
+                'common': 'Обычный',
+                'uncommon': 'Необычный',
+                'rare': 'Редкий',
+                'epic': 'Эпический',
+                'legendary': 'Легендарный',
+                'mythical': 'Мифический',
+                'exclusive': 'Эксклюзивный'
+            };
+            return names[rarity] || rarity;
+        }
+        
+        // Обработчики для кнопок фильтрации
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Убираем активный класс со всех кнопок
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                // Добавляем активный класс нажатой кнопке
+                button.classList.add('active');
+                // Фильтруем персонажей
+                displayCharacters(button.dataset.rarity);
+            });
+        });
+        
+        // Инициализация - показываем всех персонажей
+        displayCharacters();
+    </script>
+</body>
+</html>
