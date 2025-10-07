@@ -37,6 +37,16 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Блок выбора глав -->
+            <div class="chapters-section hidden" id="chaptersSection">
+                <h3>📖 Выберите главы для анализа</h3>
+                <div class="chapters-controls">
+                    <button id="selectAllBtn">Выбрать все</button>
+                    <button id="deselectAllBtn">Снять выделение</button>
+                </div>
+                <div id="chaptersList" class="chapters-list"></div>
+            </div>
         </div>
 
         <div id="analysisResult" class="analysis-result hidden">
@@ -47,18 +57,23 @@
             
             <div class="analysis-content">
                 <div class="analysis-section">
-                    <h3>📖 Содержание</h3>
+                    <h3>🎯 Краткое содержание</h3>
                     <div id="summary" class="summary-text"></div>
                 </div>
                 
                 <div class="analysis-section">
-                    <h3>👥 Персонажи</h3>
+                    <h3>👥 Главные персонажи</h3>
                     <div id="characters" class="characters-list"></div>
                 </div>
                 
                 <div class="analysis-section">
-                    <h3>💡 Основные темы</h3>
+                    <h3>💡 Основные темы и идеи</h3>
                     <div id="themes" class="themes-list"></div>
+                </div>
+
+                <div class="analysis-section">
+                    <h3>📈 Ключевые моменты сюжета</h3>
+                    <div id="keyPoints" class="key-points"></div>
                 </div>
             </div>
         </div>
@@ -70,7 +85,7 @@
             </div>
             
             <div class="question-input">
-                <input type="text" id="questionInput" placeholder="Спросите о сюжете, персонажах или авторе...">
+                <input type="text" id="questionInput" placeholder="Спросите о сюжете, персонажах, главах или авторе...">
                 <button id="askBtn">🎯 Спросить</button>
             </div>
             
