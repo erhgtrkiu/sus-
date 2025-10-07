@@ -77,6 +77,10 @@ class BookAI {
                 this.displayBookInfo(bookData);
                 this.generateChaptersList(bookData);
                 this.bookInfo.classList.remove('hidden');
+                
+                // Скрываем предыдущие результаты
+                this.analysisResult.classList.add('hidden');
+                this.qaSection.classList.add('hidden');
             } else {
                 this.showError('Книга не найдена. Попробуйте другое название');
             }
@@ -92,10 +96,10 @@ class BookAI {
     async searchGoogleBooks(query) {
         try {
             const response = await fetch(
-                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&langRestrict=ru`
+                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`
             );
             
-            if (!response.ok) throw new Error('Ошибка подключения');
+            if (!response.ok) throw new Error('Ошибка подключения к Google Books');
             
             const data = await response.json();
             if (!data.items || data.items.length === 0) return null;
@@ -114,7 +118,8 @@ class BookAI {
                     bookInfo.imageLinks.thumbnail.replace('http://', 'https://') : 
                     this.generatePlaceholderCover(bookInfo.title),
                 genre: bookInfo.categories ? bookInfo.categories[0] : 'Жанр не указан',
-                source: 'Google Books'
+                source: 'Google Books',
+                id: bookItem.id
             };
         } catch (error) {
             console.error('Google Books error:', error);
@@ -145,10 +150,10 @@ class BookAI {
             }
         } else {
             chapters = [
-                'Глава 1 - Введение',
+                'Глава 1 - Введение и завязка',
                 'Глава 2 - Развитие сюжета', 
-                'Глава 3 - Кульминация',
-                'Глава 4 - Развязка'
+                'Глава 3 - Кульминация событий',
+                'Глава 4 - Развязка и заключение'
             ];
         }
         
@@ -194,11 +199,11 @@ class BookAI {
             return;
         }
 
-        this.showLoading('Анализирую выбранные главы...');
+        this.showLoading('Ищу информацию о книге в интернете...');
         this.analyzeChaptersBtn.disabled = true;
 
         try {
-            const analysis = await this.generateChaptersAnalysis();
+            const analysis = await this.searchBookAnalysis();
             this.bookAnalysis = analysis;
             this.displayAnalysis(analysis);
             this.analysisResult.classList.remove('hidden');
@@ -211,75 +216,193 @@ class BookAI {
         }
     }
 
-    async generateChaptersAnalysis() {
+    async searchBookAnalysis() {
+        // Ищем информацию о книге в разных источниках
+        const searchPromises = [
+            this.searchBookSummary(),
+            this.searchBookCharacters(),
+            this.searchBookThemes()
+        ];
+
+        const results = await Promise.allSettled(searchPromises);
+        
+        const summary = results[0].status === 'fulfilled' ? results[0].value : null;
+        const characters = results[1].status === 'fulfilled' ? results[1].value : null;
+        const keyPoints = results[2].status === 'fulfilled' ? results[2].value : null;
+
         const selectedChaptersArray = Array.from(this.selectedChapters);
         const chapters = this.generateChaptersForBook(this.currentBook);
         const selectedChapterNames = selectedChaptersArray.map(index => chapters[index]);
-        
-        // Генерируем реалистичный анализ на основе выбранных глав
-        const chapterAnalysis = this.generateChapterContent(selectedChapterNames);
-        
+
         return {
-            chaptersSummary: chapterAnalysis.summary,
-            characters: chapterAnalysis.characters,
-            keyPoints: chapterAnalysis.keyPoints,
+            chaptersSummary: summary || this.generateFallbackSummary(selectedChapterNames),
+            characters: characters || this.generateFallbackCharacters(),
+            keyPoints: keyPoints || this.generateFallbackKeyPoints(selectedChapterNames),
             selectedChapters: selectedChapterNames,
-            source: 'Анализ на основе выбранных глав'
+            source: 'Сборный анализ из открытых источников'
         };
     }
 
-    generateChapterContent(selectedChapters) {
-        // Генерируем реалистичное содержание для выбранных глав
-        const chapterContents = selectedChapters.map(chapter => {
-            return this.generateSingleChapterContent(chapter);
+    async searchBookSummary() {
+        try {
+            // Используем описание из Google Books
+            if (this.currentBook.description && this.currentBook.description.length > 100) {
+                return this.currentBook.description;
+            }
+
+            // Ищем дополнительные источники через поиск
+            const searchQuery = `${this.currentBook.title} ${this.currentBook.author} краткое содержание`;
+            const searchResults = await this.searchWeb(searchQuery);
+            
+            if (searchResults && searchResults.length > 0) {
+                return searchResults[0].snippet || 'Информация о содержании найдена в поиске';
+            }
+
+            return null;
+        } catch (error) {
+            console.log('Summary search failed:', error);
+            return null;
+        }
+    }
+
+    async searchBookCharacters() {
+        try {
+            const searchQuery = `${this.currentBook.title} ${this.currentBook.author} персонажи герои`;
+            const searchResults = await this.searchWeb(searchQuery);
+            
+            if (searchResults && searchResults.length > 0) {
+                // Извлекаем имена из сниппетов поиска
+                const characters = this.extractCharactersFromSearchResults(searchResults);
+                return characters.length > 0 ? characters : null;
+            }
+
+            return null;
+        } catch (error) {
+            console.log('Characters search failed:', error);
+            return null;
+        }
+    }
+
+    async searchBookThemes() {
+        try {
+            const searchQuery = `${this.currentBook.title} ${this.currentBook.author} темы идеи анализ`;
+            const searchResults = await this.searchWeb(searchQuery);
+            
+            if (searchResults && searchResults.length > 0) {
+                const themes = this.extractThemesFromSearchResults(searchResults);
+                return themes.length > 0 ? themes : null;
+            }
+
+            return null;
+        } catch (error) {
+            console.log('Themes search failed:', error);
+            return null;
+        }
+    }
+
+    async searchWeb(query) {
+        try {
+            // Используем Google Custom Search API или аналогичный сервис
+            // Для демонстрации используем Google Books как fallback
+            const response = await fetch(
+                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3`
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.items && data.items.length > 0) {
+                    return data.items.map(item => ({
+                        title: item.volumeInfo.title,
+                        snippet: item.volumeInfo.description,
+                        link: item.volumeInfo.infoLink
+                    }));
+                }
+            }
+            return null;
+        } catch (error) {
+            console.log('Web search failed:', error);
+            return null;
+        }
+    }
+
+    extractCharactersFromSearchResults(results) {
+        const characters = new Set();
+        
+        results.forEach(result => {
+            if (result.snippet) {
+                // Простой алгоритм извлечения имен собственных
+                const words = result.snippet.split(/\s+/);
+                words.forEach(word => {
+                    if (word.length > 2 && /[А-Я][а-я]+/.test(word)) {
+                        const cleanWord = word.replace(/[.,!?;:()]/g, '');
+                        if (cleanWord.length > 2 && !this.isCommonWord(cleanWord)) {
+                            characters.add(cleanWord);
+                        }
+                    }
+                });
+            }
         });
 
-        const summary = chapterContents.map(content => content.summary).join('\n\n');
-        const allCharacters = [...new Set(chapterContents.flatMap(content => content.characters))];
-        const allKeyPoints = chapterContents.flatMap(content => content.keyPoints);
-
-        return {
-            summary: summary,
-            characters: allCharacters.slice(0, 8),
-            keyPoints: allKeyPoints.slice(0, 6)
-        };
+        return Array.from(characters).slice(0, 6).map(char => `${char} - упоминается в описании`);
     }
 
-    generateSingleChapterContent(chapterName) {
-        // Генерируем реалистичное содержание для одной главы
-        const chapterTemplates = [
-            `В ${chapterName} происходит развитие основных событий сюжета. Главные герои сталкиваются с новыми вызовами и принимают важные решения, которые влияют на дальнейшее развитие истории.`,
-            `${chapterName} посвящена раскрытию характеров персонажей и их взаимоотношений. Через диалоги и действия героев автор показывает их мотивацию и внутренние противоречия.`,
-            `В ${chapterName} нарастает напряжение, происходят ключевые события, которые меняют ход повествования. Герои оказываются перед сложным выбором, определяющим их дальнейшую судьбу.`,
-            `${chapterName} содержит кульминационные моменты, где конфликты достигают своего пика. Персонажи демонстрируют настоящую сущность в критических ситуациях.`
-        ];
-
-        const characterTemplates = [
-            'Главный герой сталкивается с внутренним конфликтом',
-            'Второстепенный персонаж раскрывает новые черты характера',
-            'Антагонист проявляет свою истинную природу',
-            'Взаимоотношения между персонажами углубляются',
-            'Появляется новый персонаж, влияющий на сюжет'
-        ];
-
-        const keyPointTemplates = [
-            'Поворотный момент в развитии сюжета',
-            'Важное решение главного героя',
-            'Конфликт достигает кульминации',
-            'Раскрытие ключевой информации',
-            'Изменение отношений между персонажами',
-            'Новый виток в развитии истории'
-        ];
-
-        return {
-            summary: chapterTemplates[Math.floor(Math.random() * chapterTemplates.length)],
-            characters: this.shuffleArray(characterTemplates).slice(0, 3),
-            keyPoints: this.shuffleArray(keyPointTemplates).slice(0, 2)
+    extractThemesFromSearchResults(results) {
+        const themes = new Set();
+        const themeKeywords = {
+            'любов': 'Тема любви и отношений',
+            'войн': 'Военная тематика',
+            'общест': 'Социальные вопросы',
+            'нравствен': 'Нравственные проблемы',
+            'религи': 'Религиозные темы',
+            'семь': 'Семейные отношения',
+            'власт': 'Тема власти',
+            'свобод': 'Свобода и выбор'
         };
+
+        results.forEach(result => {
+            if (result.snippet) {
+                const lowerSnippet = result.snippet.toLowerCase();
+                for (const [keyword, theme] of Object.entries(themeKeywords)) {
+                    if (lowerSnippet.includes(keyword)) {
+                        themes.add(theme);
+                    }
+                }
+            }
+        });
+
+        return Array.from(themes).slice(0, 4);
     }
 
-    shuffleArray(array) {
-        return array.sort(() => Math.random() - 0.5);
+    generateFallbackSummary(selectedChapters) {
+        return `На основе информации о книге "${this.currentBook.title}" автора ${this.currentBook.author}. 
+        
+Выбраны главы: ${selectedChapters.join(', ')}. 
+
+${this.currentBook.description || 'Для получения детального содержания выбранных глав рекомендуется ознакомиться с полным текстом произведения или найти специализированный анализ.'}`;
+    }
+
+    generateFallbackCharacters() {
+        return [
+            'Информация о персонажах требует изучения полного текста',
+            'Рекомендуется найти анализ персонажей в литературных источниках'
+        ];
+    }
+
+    generateFallbackKeyPoints(selectedChapters) {
+        return [
+            `Анализ ${selectedChapters.length} выбранных глав`,
+            'Ключевые события развития сюжета',
+            'Характеристика основных персонажей',
+            'Основные конфликты и их развитие'
+        ];
+    }
+
+    isCommonWord(word) {
+        const commonWords = [
+            'это', 'что', 'как', 'так', 'вот', 'был', 'сказал', 'глава', 'книга', 
+            'роман', 'автор', 'который', 'очень', 'после', 'тогда', 'потом'
+        ];
+        return commonWords.includes(word.toLowerCase());
     }
 
     generatePlaceholderCover(title) {
@@ -301,7 +424,7 @@ class BookAI {
         }
 
         this.askBtn.disabled = true;
-        this.showLoading('Формирую ответ...');
+        this.showLoading('Ищу ответ...');
 
         try {
             const answer = await this.generateAnswer(question);
@@ -324,15 +447,15 @@ class BookAI {
             }
 
             if (lowerQuestion.includes('персонаж') || lowerQuestion.includes('герой')) {
-                return 'Персонажи в выбранных главах:\n\n• ' + this.bookAnalysis.characters.join('\n• ');
+                return 'Персонажи:\n\n• ' + this.bookAnalysis.characters.join('\n• ');
             }
 
             if (lowerQuestion.includes('ключевой') || lowerQuestion.includes('момент') || lowerQuestion.includes('событие')) {
-                return 'Ключевые моменты:\n\n• ' + this.bookAnalysis.keyPoints.join('\n• ');
+                return 'Ключевые аспекты:\n\n• ' + this.bookAnalysis.keyPoints.join('\n• ');
             }
 
             if (lowerQuestion.includes('глава') || lowerQuestion.includes('часть')) {
-                return 'Выбранные главы для анализа:\n\n• ' + this.bookAnalysis.selectedChapters.join('\n• ');
+                return 'Выбранные главы:\n\n• ' + this.bookAnalysis.selectedChapters.join('\n• ');
             }
         }
 
@@ -345,7 +468,11 @@ class BookAI {
             return `Книга была опубликована в ${this.currentBook.year || 'неизвестном'} году.`;
         }
 
-        return `На основе анализа выбранных глав книги "${this.currentBook.title}": ${this.bookAnalysis.chaptersSummary.substring(0, 200)}...`;
+        if (lowerQuestion.includes('сколько страниц') || lowerQuestion.includes('объём')) {
+            return `Объём книги: ${this.currentBook.pages || 'информация отсутствует'}.`;
+        }
+
+        return `На основе анализа книги "${this.currentBook.title}": ${this.bookAnalysis.chaptersSummary.substring(0, 200)}...`;
     }
 
     displayBookInfo(bookData) {
@@ -360,17 +487,25 @@ class BookAI {
     }
 
     displayAnalysis(analysis) {
-        this.chaptersSummary.innerHTML = `<p>${analysis.chaptersSummary}</p>`;
+        if (this.chaptersSummary) {
+            this.chaptersSummary.innerHTML = `<p>${analysis.chaptersSummary}</p>`;
+        }
         
-        this.characters.innerHTML = analysis.characters.map(character => 
-            `<div class="character-item">${character}</div>`
-        ).join('');
+        if (this.characters) {
+            this.characters.innerHTML = analysis.characters.map(character => 
+                `<div class="character-item">${character}</div>`
+            ).join('');
+        }
         
-        this.keyPoints.innerHTML = analysis.keyPoints.map(point => 
-            `<div class="key-point">${point}</div>`
-        ).join('');
+        if (this.keyPoints) {
+            this.keyPoints.innerHTML = analysis.keyPoints.map(point => 
+                `<div class="key-point">${point}</div>`
+            ).join('');
+        }
         
-        this.analysisStats.textContent = `Проанализировано глав: ${analysis.selectedChapters.length}`;
+        if (this.analysisStats) {
+            this.analysisStats.textContent = `Проанализировано глав: ${analysis.selectedChapters.length} | Источник: ${analysis.source}`;
+        }
     }
 
     displayQA(question, answer) {
@@ -409,5 +544,5 @@ class BookAI {
 let app;
 document.addEventListener('DOMContentLoaded', () => {
     app = new BookAI();
-    console.log('BookAI initialized - с выбором глав');
+    console.log('BookAI initialized - реальный поиск анализа');
 });
