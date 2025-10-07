@@ -132,9 +132,7 @@ class BookAI {
         // Ищем анализ книги в разных источниках
         const analysisSources = [
             this.searchWikipediaAnalysis.bind(this),
-            this.searchLitResAnalysis.bind(this),
-            this.searchMyBookAnalysis.bind(this),
-            this.searchLivelibAnalysis.bind(this)
+            this.searchGoogleAnalysis.bind(this)
         ];
 
         for (const source of analysisSources) {
@@ -154,20 +152,32 @@ class BookAI {
 
     async searchWikipediaAnalysis(bookData) {
         try {
-            const searchQuery = encodeURIComponent(`${bookData.title} ${bookData.author} анализ содержание`);
-            const response = await fetch(
-                `https://ru.wikipedia.org/api/rest_v1/page/summary/${searchQuery}`
-            );
+            // Пробуем разные варианты поиска в Wikipedia
+            const searchVariants = [
+                bookData.title,
+                `${bookData.title} (роман)`,
+                `${bookData.title} ${bookData.author}`
+            ];
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.extract && data.extract.length > 200) {
-                    return {
-                        summary: data.extract,
-                        characters: this.extractCharactersFromText(data.extract),
-                        themes: this.extractThemesFromText(data.extract),
-                        source: 'Wikipedia'
-                    };
+            for (const variant of searchVariants) {
+                try {
+                    const response = await fetch(
+                        `https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(variant)}`
+                    );
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.extract && data.extract.length > 100) {
+                            return {
+                                summary: data.extract,
+                                characters: this.extractCharactersFromText(data.extract),
+                                themes: this.extractThemesFromText(data.extract),
+                                source: 'Wikipedia'
+                            };
+                        }
+                    }
+                } catch (error) {
+                    continue;
                 }
             }
         } catch (error) {
@@ -176,79 +186,19 @@ class BookAI {
         return null;
     }
 
-    async searchLitResAnalysis(bookData) {
+    async searchGoogleAnalysis(bookData) {
         try {
-            // Ищем информацию через поиск Литрес
-            const searchQuery = encodeURIComponent(`${bookData.title} ${bookData.author} анализ краткое содержание`);
-            const response = await fetch(
-                `https://www.googleapis.com/customsearch/v1?key=AIzaSyCl0nY7dKZ0Q9QY9QY9QY9QY9QY9QY9QY9Q&cx=017576662512468239146:omuauf_lfve&q=${searchQuery}`
-            );
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.items && data.items.length > 0) {
-                    // Берем первый результат поиска
-                    const firstResult = data.items[0];
-                    return {
-                        summary: firstResult.snippet || 'Анализ найден в поиске',
-                        characters: ['Информация о персонажах доступна в полном анализе'],
-                        themes: ['Основные темы произведения'],
-                        source: 'Поиск Google',
-                        url: firstResult.link
-                    };
-                }
-            }
-        } catch (error) {
-            console.log('LitRes search not available');
-        }
-        return null;
-    }
-
-    async searchMyBookAnalysis(bookData) {
-        try {
-            // Пытаемся найти анализ через MyBook или другие ресурсы
-            const searchQuery = encodeURIComponent(`${bookData.title} анализ сюжет персонажи`);
-            const response = await fetch(
-                `https://api.allorigins.win/get?url=${encodeURIComponent(`https://mybook.ru/search/books/?q=${searchQuery}`)}`
-            );
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.contents) {
-                    return {
-                        summary: 'Анализ книги доступен на MyBook',
-                        characters: ['Персонажи описаны в полном анализе'],
-                        themes: ['Темы произведения раскрыты в детальном разборе'],
-                        source: 'MyBook',
-                        url: `https://mybook.ru/search/books/?q=${searchQuery}`
-                    };
-                }
-            }
-        } catch (error) {
-            console.log('MyBook search not available');
-        }
-        return null;
-    }
-
-    async searchLivelibAnalysis(bookData) {
-        try {
-            // Поиск через LiveLib
-            const searchQuery = encodeURIComponent(`${bookData.title} ${bookData.author} рецензия анализ`);
-            const response = await fetch(
-                `https://www.livelib.ru/find/${searchQuery}`
-            );
-
-            if (response.ok) {
+            // Используем Google Books description как анализ
+            if (bookData.description && bookData.description.length > 200) {
                 return {
-                    summary: 'Рецензии и анализ доступны на LiveLib',
-                    characters: ['Характеристики персонажей в рецензиях'],
-                    themes: ['Тематический анализ в обзорах'],
-                    source: 'LiveLib',
-                    url: `https://www.livelib.ru/find/${searchQuery}`
+                    summary: bookData.description,
+                    characters: this.extractCharactersFromText(bookData.description),
+                    themes: this.extractThemesFromText(bookData.description),
+                    source: 'Google Books'
                 };
             }
         } catch (error) {
-            console.log('LiveLib search not available');
+            console.log('Google analysis not available');
         }
         return null;
     }
@@ -270,11 +220,9 @@ class BookAI {
         const topNames = Object.entries(nameCount)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 6)
-            .map(([name]) => name);
+            .map(([name]) => `${name} - упоминается в описании`);
 
-        return topNames.length > 0 ? 
-            topNames.map(name => `${name} - упоминается в анализе`) : 
-            ['Персонажи не указаны в найденном анализе'];
+        return topNames.length > 0 ? topNames : ['Персонажи не указаны в найденном анализе'];
     }
 
     extractThemesFromText(text) {
@@ -291,7 +239,10 @@ class BookAI {
             'власт': 'Тема власти',
             'свобод': 'Свобода и выбор',
             'смерт': 'Тема смерти',
-            'жизн': 'Проблемы жизни'
+            'жизн': 'Проблемы жизни',
+            'преступлен': 'Преступление и наказание',
+            'духов': 'Духовные искания',
+            'философ': 'Философские вопросы'
         };
 
         for (const [keyword, theme] of Object.entries(themeKeywords)) {
@@ -300,15 +251,25 @@ class BookAI {
             }
         }
 
-        return themes.length > 0 ? themes : ['Основные темы произведения'];
+        return themes.length > 0 ? themes.slice(0, 5) : ['Основные темы произведения'];
     }
 
     isCommonWord(word) {
-        const commonWords = ['это', 'что', 'как', 'так', 'вот', 'был', 'сказал', 'глава', 'книга', 'роман', 'автор'];
+        const commonWords = [
+            'это', 'что', 'как', 'так', 'вот', 'был', 'сказал', 'глава', 'книга', 
+            'роман', 'автор', 'который', 'очень', 'после', 'тогда', 'потом', 'может'
+        ];
         return commonWords.includes(word.toLowerCase());
     }
 
     generateBasicAnalysis(bookData) {
+        // Для популярных книг предоставляем более детальный анализ
+        const popularBooksAnalysis = this.getPopularBooksAnalysis(bookData.title);
+        if (popularBooksAnalysis) {
+            return popularBooksAnalysis;
+        }
+
+        // Базовый анализ для остальных книг
         return {
             summary: bookData.description || `"${bookData.title}" - ${
                 bookData.author ? `произведение автора ${bookData.author}` : 'литературное произведение'
@@ -321,6 +282,74 @@ class BookAI {
             themes: ['Основные темы требуют изучения полного содержания книги'],
             source: 'Базовый анализ на основе метаданных'
         };
+    }
+
+    getPopularBooksAnalysis(title) {
+        const lowerTitle = title.toLowerCase();
+        const analysisDatabase = {
+            'преступление и наказание': {
+                summary: `Роман Фёдора Достоевского рассказывает о бывшем студенте Родионе Раскольникове, который создаёт теорию о "право имеющих" личностях. Чтобы доказать свою теорию, он убивает старуху-процентщицу, но затем мучается угрызениями совести. Через встречи с Соней Мармеладовой и следователем Порфирием Петровичем он приходит к осознанию своей ошибки и признаётся в преступлении.`,
+                characters: [
+                    'Родион Раскольников - главный герой, создатель теории о "сверхчеловеке"',
+                    'Соня Мармеладова - символ христианского смирения и жертвенности',
+                    'Порфирий Петрович - проницательный следователь',
+                    'Дмитрий Разумихин - друг Раскольникова',
+                    'Аркадий Свидригайлов - циничный аристократ'
+                ],
+                themes: [
+                    'Нравственность и свобода воли',
+                    'Теория "сверхчеловека" и её последствия',
+                    'Страдание как путь к искуплению',
+                    'Социальная несправедливость',
+                    'Роль религии в нравственном выборе'
+                ],
+                source: 'Литературный анализ'
+            },
+            'война и мир': {
+                summary: `Эпопея Льва Толстого охватывает период наполеоновских войн и рассказывает о судьбах нескольких дворянских семей. Основные сюжетные линии связаны с духовными исканиями Пьера Безухова, военной карьерой Андрея Болконского и взрослением Наташи Ростовой. Роман сочетает глубокий психологический анализ с философскими размышлениями о истории и смысле жизни.`,
+                characters: [
+                    'Пьер Безухов - искатель смысла жизни',
+                    'Андрей Болконский - аристократ, разочарованный в светской жизни',
+                    'Наташа Ростова - жизнерадостная и эмоциональная героиня',
+                    'Николай Ростов - честный офицер',
+                    'Марья Болконская - религиозная и добрая девушка'
+                ],
+                themes: [
+                    'Война и мир как состояния человеческой души',
+                    'Смысл жизни и поиск истины',
+                    'Любовь и семейные ценности',
+                    'Роль личности в истории',
+                    'Свобода воли и предопределение'
+                ],
+                source: 'Литературный анализ'
+            },
+            'мастер и маргарита': {
+                summary: `Роман Михаила Булгакова состоит из двух переплетающихся сюжетных линий: истории визита дьявола (Воланда) в Москву 1930-х годов и романа о Понтии Пилате, написанного Мастером. Произведение сочетает сатиру на советское общество с глубокими философскими размышлениями о добре и зле, любви и творчестве.`,
+                characters: [
+                    'Мастер - писатель, автор романа о Понтии Пилате',
+                    'Маргарита - возлюбленная Мастера',
+                    'Воланд - сатана в человеческом облике',
+                    'Иешуа Га-Ноцри - философ, прообраз Христа',
+                    'Понтий Пилат - римский прокуратор'
+                ],
+                themes: [
+                    'Борьба добра и зла',
+                    'Свобода творчества и цензура',
+                    'Любовь и самопожертвование',
+                    'Справедливость и возмездие',
+                    'Сатира на общественные пороки'
+                ],
+                source: 'Литературный анализ'
+            }
+        };
+
+        for (const [key, analysis] of Object.entries(analysisDatabase)) {
+            if (lowerTitle.includes(key)) {
+                return analysis;
+            }
+        }
+
+        return null;
     }
 
     generatePlaceholderCover(title) {
@@ -342,10 +371,10 @@ class BookAI {
         }
 
         this.askBtn.disabled = true;
-        this.showLoading('Ищу ответ в найденных анализах...');
+        this.showLoading('Ищу ответ...');
 
         try {
-            const answer = await this.searchAnswer(question);
+            const answer = await this.generateAnswer(question);
             this.displayQA(question, answer);
             this.questionInput.value = '';
         } catch (error) {
@@ -356,7 +385,7 @@ class BookAI {
         }
     }
 
-    async searchAnswer(question) {
+    async generateAnswer(question) {
         const lowerQuestion = question.toLowerCase();
         const book = this.currentBook;
 
@@ -367,11 +396,15 @@ class BookAI {
             }
 
             if (lowerQuestion.includes('персонаж') || lowerQuestion.includes('герой')) {
-                return 'Основные персонажи: ' + this.bookAnalysis.characters.join(', ');
+                if (this.bookAnalysis.characters && this.bookAnalysis.characters.length > 0) {
+                    return 'Основные персонажи:\n\n• ' + this.bookAnalysis.characters.join('\n• ');
+                }
             }
 
             if (lowerQuestion.includes('тема') || lowerQuestion.includes('идея')) {
-                return 'Основные темы: ' + this.bookAnalysis.themes.join(', ');
+                if (this.bookAnalysis.themes && this.bookAnalysis.themes.length > 0) {
+                    return 'Основные темы:\n\n• ' + this.bookAnalysis.themes.join('\n• ');
+                }
             }
         }
 
@@ -394,8 +427,9 @@ class BookAI {
 
         // Если не нашли ответ в анализе
         return `На основе найденной информации о книге "${book.title}": ${
-            this.bookAnalysis?.summary ? this.bookAnalysis.summary.substring(0, 300) + '...' : 
-            'Для ответа на этот вопрос требуется более детальный анализ произведения. Рекомендую поискать рецензии и анализы на литературных сайтах.'
+            this.bookAnalysis?.summary ? 
+            this.bookAnalysis.summary.substring(0, 300) + '...' : 
+            'Для ответа на этот вопрос требуется более детальный анализ произведения.'
         }`;
     }
 
