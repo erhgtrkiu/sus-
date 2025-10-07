@@ -140,7 +140,7 @@ class BookAI {
 
     generateChaptersForBook(bookData) {
         const chapters = [];
-        const totalChapters = 8; // Генерируем 8 глав для примера
+        const totalChapters = 8;
         
         for (let i = 1; i <= totalChapters; i++) {
             chapters.push(`Глава ${i}`);
@@ -232,13 +232,6 @@ class BookAI {
         analysis = this.generateGeneralAnalysis(selectedChapters);
 
         return analysis;
-    }
-
-    generateChapterSummary(selectedChapters, allSummaries) {
-        return selectedChapters.map(chapter => {
-            const index = this.generateChaptersForBook(this.currentBook).indexOf(chapter);
-            return `**${chapter}**\n\n${allSummaries[index] || allSummaries[0]}`;
-        }).join('\n\n');
     }
 
     generateGeneralAnalysis(selectedChapters) {
