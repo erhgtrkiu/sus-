@@ -139,11 +139,46 @@ class BookAI {
     }
 
     generateChaptersForBook(bookData) {
+        const bookTitle = bookData.title.toLowerCase();
         const chapters = [];
-        const totalChapters = 8;
         
-        for (let i = 1; i <= totalChapters; i++) {
-            chapters.push(`Глава ${i}`);
+        // Для больших произведений с томами
+        if (bookTitle.includes('война и мир') || 
+            bookTitle.includes('анна каренина') ||
+            bookTitle.includes('братья карамазовы') ||
+            bookTitle.includes('идиот') ||
+            bookPages > 500) {
+            
+            // Генерируем тома и главы для больших книг
+            const totalVolumes = bookTitle.includes('война и мир') ? 4 : 3;
+            const chaptersPerVolume = bookTitle.includes('война и мир') ? 20 : 15;
+            
+            for (let volume = 1; volume <= totalVolumes; volume++) {
+                for (let chapter = 1; chapter <= chaptersPerVolume; chapter++) {
+                    chapters.push(`Том ${volume} Глава ${chapter}`);
+                }
+            }
+        } 
+        // Для средних произведений
+        else if (bookData.pages > 300) {
+            const totalChapters = Math.min(25, Math.floor(bookData.pages / 15));
+            for (let i = 1; i <= totalChapters; i++) {
+                chapters.push(`Глава ${i}`);
+            }
+        }
+        // Для обычных книг
+        else {
+            const totalChapters = Math.min(15, Math.floor(bookData.pages / 10));
+            for (let i = 1; i <= totalChapters; i++) {
+                chapters.push(`Глава ${i}`);
+            }
+        }
+        
+        // Если всё равно мало глав, добавляем до 15
+        if (chapters.length < 8) {
+            for (let i = chapters.length + 1; i <= 15; i++) {
+                chapters.push(`Глава ${i}`);
+            }
         }
         
         return chapters;
@@ -235,21 +270,77 @@ class BookAI {
     }
 
     generateGeneralAnalysis(selectedChapters) {
-        const chapterDescriptions = [
-            "В этой главе происходит знакомство с главными героями и основными обстоятельствами сюжета.",
-            "Развитие основных событий, углубление характеров персонажей и нарастание конфликта.",
-            "Ключевые повороты сюжета, которые меняют направление развития истории.",
-            "Важные диалоги и сцены, раскрывающие отношения между персонажами.",
-            "Нарастание напряжения и подготовка к кульминационным событиям.",
-            "Разрешение основных конфликтов и подведение промежуточных итогов.",
-            "Финальные события, завершающие основные сюжетные линии.",
-            "Эпилог или заключительные размышления, подводящие итоги произведения."
-        ];
+        const chapterDescriptions = {
+            'том 1': [
+                "Введение в мир произведения, знакомство с основными персонажами и обстоятельствами.",
+                "Развитие первоначальных событий, установление основных конфликтов.",
+                "Углубление характеров главных героев, первые важные решения.",
+                "Поворотные моменты, меняющие ход повествования.",
+                "Нарастание напряжения, подготовка к ключевым событиям.",
+                "Кульминационные сцены первого тома, важные откровения.",
+                "Развязка первоначальных конфликтов, переход ко второму тому."
+            ],
+            'том 2': [
+                "Новые обстоятельства и развитие ранее заложенных сюжетных линий.",
+                "Появление второстепенных персонажей, усложнение конфликта.",
+                "Психологическое развитие главных героев в новых условиях.",
+                "Ключевые диалоги и монологи, раскрывающие философию произведения.",
+                "Нарастание основного конфликта, подготовка к кульминации.",
+                "Важные события, определяющие дальнейшую судьбу персонажей.",
+                "Завершение второго тома с намёком на будущие события."
+            ],
+            'том 3': [
+                "Развитие сюжета в новых декорациях, изменение динамики повествования.",
+                "Глубокое раскрытие внутреннего мира персонажей.",
+                "Поворотные моменты, кардинально меняющие отношения между героями.",
+                "Философские размышления и моральные дилеммы.",
+                "Кульминация основных сюжетных линий произведения.",
+                "Разрешение ключевых конфликтов, переоценка ценностей.",
+                "Подготовка к финальной части произведения."
+            ],
+            'том 4': [
+                "Финальное развитие сюжета, приближение к развязке.",
+                "Последние важные решения главных героев.",
+                "Финальные конфликты и их разрешение.",
+                "Эпические сцены, подводящие итоги всего произведения.",
+                "Духовное преображение персонажей, итоги их пути.",
+                "Финальные события, завершающие основные сюжетные линии.",
+                "Эпилог и заключительные мысли автора."
+            ],
+            'default': [
+                "Знакомство с персонажами и основными обстоятельствами сюжета.",
+                "Развитие событий и углубление характеров.",
+                "Поворотные моменты в развитии истории.",
+                "Важные диалоги и развитие отношений.",
+                "Нарастание напряжения и конфликта.",
+                "Кульминационные события главы.",
+                "Разрешение конфликтов и подготовка к следующим событиям."
+            ]
+        };
 
         return {
             summary: selectedChapters.map(chapter => {
-                const index = this.generateChaptersForBook(this.currentBook).indexOf(chapter);
-                return `**${chapter}**\n\n${chapterDescriptions[index] || "Анализ содержания данной главы произведения."}`;
+                let description = "Анализ содержания данной части произведения.";
+                
+                // Определяем, к какому тому относится глава
+                if (chapter.toLowerCase().includes('том 1')) {
+                    const chapterNum = this.extractChapterNumber(chapter);
+                    description = chapterDescriptions['том 1'][chapterNum - 1] || chapterDescriptions['default'][0];
+                } else if (chapter.toLowerCase().includes('том 2')) {
+                    const chapterNum = this.extractChapterNumber(chapter);
+                    description = chapterDescriptions['том 2'][chapterNum - 1] || chapterDescriptions['default'][1];
+                } else if (chapter.toLowerCase().includes('том 3')) {
+                    const chapterNum = this.extractChapterNumber(chapter);
+                    description = chapterDescriptions['том 3'][chapterNum - 1] || chapterDescriptions['default'][2];
+                } else if (chapter.toLowerCase().includes('том 4')) {
+                    const chapterNum = this.extractChapterNumber(chapter);
+                    description = chapterDescriptions['том 4'][chapterNum - 1] || chapterDescriptions['default'][3];
+                } else {
+                    const chapterNum = this.extractChapterNumber(chapter);
+                    description = chapterDescriptions['default'][chapterNum - 1] || chapterDescriptions['default'][0];
+                }
+                
+                return `**${chapter}**\n\n${description}`;
             }).join('\n\n'),
             characters: [
                 'Главный герой - центральный персонаж произведения, чья судьба составляет основу сюжета',
@@ -263,6 +354,11 @@ class BookAI {
                 'Художественные особенности и стиль повествования'
             ]
         };
+    }
+
+    extractChapterNumber(chapterName) {
+        const match = chapterName.match(/Глава\s+(\d+)/);
+        return match ? parseInt(match[1]) : 1;
     }
 
     generatePlaceholderCover(title) {
@@ -332,7 +428,7 @@ class BookAI {
     }
 
     displayAnalysis(analysis) {
-        this.analysisStats.textContent = `Проанализировано глав: ${analysis.selectedChapters.length}`;
+        this.analysisStats.textContent = `Проанализировано разделов: ${analysis.selectedChapters.length}`;
         
         this.chaptersSummary.innerHTML = `
             <div class="analysis-text">
