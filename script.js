@@ -3,7 +3,7 @@ class BookAI {
         this.initializeElements();
         this.bindEvents();
         this.currentBook = null;
-        this.initializeBooksDatabase();
+        this.searchCache = new Map();
     }
 
     initializeElements() {
@@ -17,7 +17,7 @@ class BookAI {
         this.bookDescription = document.getElementById('bookDescription');
         this.bookYear = document.getElementById('bookYear');
         this.bookPages = document.getElementById('bookPages');
-        this.bookGenre = document.getElementById('bookGenre');
+        this.bookRating = document.getElementById('bookRating');
         
         this.loading = document.getElementById('loading');
         this.loadingText = document.getElementById('loadingText');
@@ -25,7 +25,7 @@ class BookAI {
         this.summary = document.getElementById('summary');
         this.characters = document.getElementById('characters');
         this.themes = document.getElementById('themes');
-        this.keyPoints = document.getElementById('keyPoints');
+        this.analysis = document.getElementById('analysis');
         
         this.qaSection = document.getElementById('qaSection');
         this.questionInput = document.getElementById('questionInput');
@@ -47,393 +47,41 @@ class BookAI {
         });
     }
 
-    initializeBooksDatabase() {
-        this.booksDatabase = {
-            // Русская классика
-            'преступление и наказание': {
-                title: 'Преступление и наказание',
-                author: 'Фёдор Михайлович Достоевский',
-                year: 1866,
-                pages: 551,
-                genre: 'Психологический роман',
-                cover: 'https://cv1.litres.ru/pub/c/cover_330/12412494.jpg',
-                description: 'Роман о бывшем студенте Родионе Раскольникове, который совершает преступление, чтобы проверить свою теорию о "право имеющих" личностях.',
-                analysis: {
-                    summary: 'Родион Раскольников, бедный студент, разрабатывает теорию о разделении людей на "обыкновенных" и "необыкновенных". Чтобы доказать свою принадлежность к последним, он убивает старуху-процентщицу. Однако муки совести и встреча с Соней Мармеладовой заставляют его переосмыслить свои взгляды и в итоге признаться в преступлении.',
-                    characters: [
-                        'Родион Раскольников - главный герой, бывший студент, создатель теории о "сверхчеловеке"',
-                        'Соня Мармеладова - дочь чиновника, вынужденная заниматься проституцией, символ христианского смирения',
-                        'Порфирий Петрович - следователь, который разгадывает преступление Раскольникова',
-                        'Разумихин - друг Раскольникова, противопоставленный ему своим жизнелюбием',
-                        'Свидригайлов - циничный аристократ, олицетворение морального разложения'
-                    ],
-                    themes: [
-                        'Нравственность и свобода воли',
-                        'Теория "сверхчеловека" и её последствия',
-                        'Страдание как путь к искуплению',
-                        'Социальная несправедливость',
-                        'Христианское смирение и прощение'
-                    ],
-                    keyPoints: [
-                        'Теория Раскольникова о разделении людей на "тварей дрожащих" и "право имеющих"',
-                        'Убийство старухи-процентщицы как проверка теории',
-                        'Душевные терзания и болезнь после преступления',
-                        'Встреча с Соней Мармеладовой и её влияние',
-                        'Признание в преступлении и ссылка в Сибирь'
-                    ]
-                }
-            },
-
-            'война и мир': {
-                title: 'Война и мир',
-                author: 'Лев Николаевич Толстой',
-                year: 1869,
-                pages: 1225,
-                genre: 'Роман-эпопея',
-                cover: 'https://cv6.litres.ru/pub/c/cover_330/12345678.jpg',
-                description: 'Монументальное произведение о жизни русского общества во время Napoleonic Wars, охватывающее судьбы нескольких аристократических семей.',
-                analysis: {
-                    summary: 'Эпопея рассказывает о жизни нескольких дворянских семей (Ростовы, Болконские, Безуховы, Курагины) на фоне войн с Наполеоном 1805-1812 годов. Произведение сочетает глубокий психологический анализ с философскими размышлениями о истории, свободе воли и смысле жизни.',
-                    characters: [
-                        'Пьер Безухов - незаконнорожденный сын графа, ищущий смысл жизни',
-                        'Андрей Болконский - аристократ, разочарованный в светской жизни',
-                        'Наташа Ростова - жизнерадостная и эмоциональная девушка',
-                        'Николай Ростов - честный офицер, представитель старого дворянства',
-                        'Марья Болконская - религиозная и добрая девушка',
-                        'Элен Курагина - красивая, но безнравственная светская дама'
-                    ],
-                    themes: [
-                        'Война и мир как состояния человеческой души',
-                        'Смысл жизни и поиск истины',
-                        'Свобода воли и историческая необходимость',
-                        'Любовь, семья и духовные ценности',
-                        'Роль личности в истории'
-                    ],
-                    keyPoints: [
-                        'Духовные искания Пьера Безухова',
-                        'Раны и разочарования Андрея Болконского',
-                        'Взросление и ошибки Наташи Ростовой',
-                        'Бородинское сражение как кульминация войны',
-                        'Философия истории Толстого'
-                    ]
-                }
-            },
-
-            'анна каренина': {
-                title: 'Анна Каренина',
-                author: 'Лев Николаевич Толстой',
-                year: 1877,
-                pages: 864,
-                genre: 'Роман',
-                cover: 'https://cv2.litres.ru/pub/c/cover_330/23456789.jpg',
-                description: 'Трагическая история любви замужней женщины к блестящему офицеру, разворачивающаяся на фоне жизни русского высшего общества.',
-                analysis: {
-                    summary: 'Анна Каренина, замужняя женщина из высшего общества, влюбляется в молодого офицера Алексея Вронского. Их страстный роман приводит к разрыву с мужем и изгнанию из светского общества. Параллельно развивается история Константина Левина, который ищет смысл жизни в труде и семейном счастье.',
-                    characters: [
-                        'Анна Каренина - красивая и страстная женщина, жертва общественных условностей',
-                        'Алексей Вронский - блестящий офицер, объект любви Анны',
-                        'Алексей Каренин - муж Анны, высокопоставленный чиновник',
-                        'Константин Левин - помещик, alter ego Толстого',
-                        'Кити Щербацкая - возлюбленная Левина',
-                        'Стива Облонский - брат Анны, легкомысленный аристократ'
-                    ],
-                    themes: [
-                        'Любовь, страсть и супружеская верность',
-                        'Общественные нормы и личная свобода',
-                        'Семейное счастье и его поиски',
-                        'Религия и нравственность',
-                        'Сельская жизнь vs городская цивилизация'
-                    ],
-                    keyPoints: [
-                        'Встреча Анны и Вронского на балу',
-                        'Развитие запретного романа',
-                        'Признание Каренину и разрыв',
-                        'Рождение дочери и изгнание из общества',
-                        'Трагический финал Анны',
-                        'Счастливый брак Левина и Кити'
-                    ]
-                }
-            },
-
-            'мастер и маргарита': {
-                title: 'Мастер и Маргарита',
-                author: 'Михаил Афанасьевич Булгаков',
-                year: 1967,
-                pages: 480,
-                genre: 'Фантастический роман',
-                cover: 'https://cv4.litres.ru/pub/c/cover_330/34567890.jpg',
-                description: 'Мистический роман, сочетающий сатиру на советское общество с философскими размышлениями о добре и зле.',
-                analysis: {
-                    summary: 'В Москву 1930-х годов прибывает сатана в образе профессора Воланда со своей свитой. Они устраивают серию мистических событий, разоблачая пороки советского общества. Параллельно рассказывается история Мастера, написавшего роман о Понтии Пилате, и его возлюбленной Маргариты.',
-                    characters: [
-                        'Воланд - сатана в человеческом облике',
-                        'Мастер - писатель, автор романа о Понтии Пилате',
-                        'Маргарита - возлюбленная Мастера, готовая на всё ради него',
-                        'Иешуа Га-Ноцри - прообраз Иисуса Христа',
-                        'Понтий Пилат - римский прокуратор Иудеи',
-                        'Коровьев-Фагот, Азазелло, Бегемот - члены свиты Воланда'
-                    ],
-                    themes: [
-                        'Борьба добра и зла',
-                        'Свобода творчества и цензура',
-                        'Любовь и самопожертвование',
-                        'Справедливость и возмездие',
-                        'Религиозные и философские вопросы'
-                    ],
-                    keyPoints: [
-                        'Появление Воланда в Москве',
-                        'Сеанс чёрной магии в Варьете',
-                        'История Понтия Пилата и Иешуа',
-                        'Маргарита становится ведьмой',
-                        'Бал у сатаны',
-                        'Судьба Мастера и Маргариты'
-                    ]
-                }
-            },
-
-            'отцы и дети': {
-                title: 'Отцы и дети',
-                author: 'Иван Сергеевич Тургенев',
-                year: 1862,
-                pages: 256,
-                genre: 'Социально-психологический роман',
-                cover: 'https://cv7.litres.ru/pub/c/cover_330/45678901.jpg',
-                description: 'Роман о конфликте поколений и идеологическом противостоянии либералов и нигилистов в России XIX века.',
-                analysis: {
-                    summary: 'Молодой нигилист Евгений Базаров приезжает в имение своего друга Аркадия Кирсанова. Его материалистические взгляды вступают в конфликт с либеральными убеждениями старшего поколения, представленного Павлом Петровичем Кирсановым. Любовь к Анне Одинцовой заставляет Базарова пересмотреть свои взгляды.',
-                    characters: [
-                        'Евгений Базаров - нигилист, студент-медик',
-                        'Аркадий Кирсанов - друг Базарова, молодой дворянин',
-                        'Николай Кирсанов - отец Аркадия, либеральный помещик',
-                        'Павел Кирсанов - дядя Аркадия, аристократ старой закалки',
-                        'Анна Одинцова - богатая вдова, объект любви Базарова',
-                        'Фенечка - молодая женщина, возлюбленная Николая Кирсанова'
-                    ],
-                    themes: [
-                        'Конфликт поколений',
-                        'Нигилизм vs традиционные ценности',
-                        'Любовь и её влияние на человека',
-                        'Социальные изменения в России',
-                        'Наука и прогресс'
-                    ],
-                    keyPoints: [
-                        'Идеологический спор Базарова с Павлом Петровичем',
-                        'Встреча с Анной Одинцовой',
-                        'Любовь Базарова и её влияние на него',
-                        'Дуэль с Павлом Петровичем',
-                        'Возвращение к родителям и трагический финал'
-                    ]
-                }
-            },
-
-            'герой нашего времени': {
-                title: 'Герой нашего времени',
-                author: 'Михаил Юрьевич Лермонтов',
-                year: 1840,
-                pages: 224,
-                genre: 'Психологический роман',
-                cover: 'https://cv9.litres.ru/pub/c/cover_330/56789012.jpg',
-                description: 'Первый в русской литературе психологический роман, состоящий из нескольких повестей, объединённых образом главного героя.',
-                analysis: {
-                    summary: 'Роман состоит из пяти повестей, рассказывающих о жизни Григория Печорина - молодого офицера, разочарованного в жизни. Через его приключения на Кавказе раскрывается сложный психологический портрет "лишнего человека" своего времени.',
-                    characters: [
-                        'Григорий Печорин - главный герой, офицер, "лишний человек"',
-                        'Максим Максимыч - штабс-капитан, рассказчик части истории',
-                        'Бэла - черкесская княжна, возлюбленная Печорина',
-                        'Княжна Мэри - светская девушка, ставшая объектом игры Печорина',
-                        'Вера - единственная женщина, которую по-настоящему любил Печорин',
-                        'Грушницкий - юнкер, соперник Печорина'
-                    ],
-                    themes: [
-                        'Психология "лишнего человека"',
-                        'Скука и разочарование в жизни',
-                        'Любовь как игра и эксперимент',
-                        'Судьба и предопределение',
-                        'Общество и индивидуализм'
-                    ],
-                    keyPoints: [
-                        'История похищения Бэлы',
-                        'Встреча с Максимом Максимычем',
-                        'Курортный роман с княжной Мэри',
-                        'Дуэль с Грушницким',
-                        'Философские размышления в "Фаталисте"'
-                    ]
-                }
-            },
-
-            'dead souls': {
-                title: 'Мёртвые души',
-                author: 'Николай Васильевич Гоголь',
-                year: 1842,
-                pages: 352,
-                genre: 'Поэма, сатира',
-                cover: 'https://cv1.litres.ru/pub/c/cover_330/67890123.jpg',
-                description: 'Сатирическое произведение о афере с "мёртвыми душами" - умершими крепостными, которые по документам ещё числятся живыми.',
-                analysis: {
-                    summary: 'Павел Чичиков путешествует по российской провинции, скупая у помещиков "мёртвые души" - умерших крестьян, которые по ревизским сказкам ещё считаются живыми. Его афера раскрывает картину российской действительности и человеческих пороков.',
-                    characters: [
-                        'Павел Чичиков - главный герой, аферист',
-                        'Манилов - сентиментальный помещик-мечтатель',
-                        'Коробочка - глупая и жадная помещица',
-                        'Ноздрёв - хвастун и враль',
-                        'Собакевич - грубый и практичный помещик',
-                        'Плюшкин - скряга, доведший себя до нищеты'
-                    ],
-                    themes: [
-                        'Российская действительность и пороки общества',
-                        'Человеческие характеры и их типизация',
-                        'Коррупция и бюрократия',
-                        'Духовная "мёртвость" персонажей',
-                        'Сатира на социальные явления'
-                    ],
-                    keyPoints: [
-                        'Замысел Чичикова по покупке "мёртвых душ"',
-                        'Встреча с Маниловым - "сладким" помещиком',
-                        'Торг с Коробочкой',
-                        'Обман Ноздрёва',
-                        'Сделка с Собакевичем',
-                        'Ужасающая бедность Плюшкина'
-                    ]
-                }
-            },
-
-            'евгений онегин': {
-                title: 'Евгений Онегин',
-                author: 'Александр Сергеевич Пушкин',
-                year: 1833,
-                pages: 240,
-                genre: 'Роман в стихах',
-                cover: 'https://cv3.litres.ru/pub/c/cover_330/78901234.jpg',
-                description: 'Роман в стихах о жизни светского денди Евгения Онегина, его отношениях с Татьяной Лариной и дуэли с Ленским.',
-                analysis: {
-                    summary: 'Евгений Онегин, молодой аристократ, пресыщенный светской жизнью, приезжает в деревню, где знакомится с Владимиром Ленским и сёстрами Лариными. Татьяна влюбляется в Онегина, но получает отказ. Ссора с Ленским приводит к дуэли и трагической развязке.',
-                    characters: [
-                        'Евгений Онегин - главный герой, "лишний человек"',
-                        'Татьяна Ларина - романтичная и глубокая девушка',
-                        'Владимир Ленский - молодой поэт-романтик',
-                        'Ольга Ларина - весёлая и легкомысленная сестра Татьяны'
-                    ],
-                    themes: [
-                        'Любовь и разочарование',
-                        'Светская жизнь и её пустота',
-                        'Русская действительность',
-                        'Судьба и случай',
-                        'Творчество и реальность'
-                    ],
-                    keyPoints: [
-                        'Знакомство Онегина с Лариными',
-                        'Письмо Татьяны к Онегину',
-                        'Отказ Онегина',
-                        'Ссора с Ленским',
-                        'Дуэль и смерть Ленского',
-                        'Встреча с замужней Татьяной'
-                    ]
-                }
-            },
-
-            'idiot': {
-                title: 'Идиот',
-                author: 'Фёдор Михайлович Достоевский',
-                year: 1869,
-                pages: 640,
-                genre: 'Психологический роман',
-                cover: 'https://cv5.litres.ru/pub/c/cover_330/89012345.jpg',
-                description: 'Роман о князе Мышкине - "положительно прекрасном человеке", пытающемся жить по христианским заповедям в жестоком мире.',
-                analysis: {
-                    summary: 'Князь Лев Мышкин, прозванный "идиотом" из-за своей болезни и наивности, возвращается в Россию из Швейцарии. Его попытки жить по христианским принципам доброты и сострадания сталкиваются с жестокостью и пороками окружающего общества.',
-                    characters: [
-                        'Князь Лев Мышкин - главный герой, "положительно прекрасный человек"',
-                        'Настасья Филипповна - красавица с трагической судьбой',
-                        'Рогожин - страстный купец, влюблённый в Настасью Филипповну',
-                        'Аглая Епанчина - молодая аристократка',
-                        'Ганя Иволгин - честолюбивый чиновник'
-                    ],
-                    themes: [
-                        'Христианское смирение и доброта',
-                        'Красота и её разрушительная сила',
-                        'Любовь, ревность и страсть',
-                        'Безумие и святость',
-                        'Русский характер и общество'
-                    ],
-                    keyPoints: [
-                        'Возвращение Мышкина в Россию',
-                        'Знакомство с Настасьей Филипповной',
-                        'Соперничество с Рогожиным',
-                        'Отношения с семьёй Епанчиных',
-                        'Трагическая развязка'
-                    ]
-                }
-            },
-
-            'братья карамазовы': {
-                title: 'Братья Карамазовы',
-                author: 'Фёдор Михайлович Достоевский',
-                year: 1880,
-                pages: 840,
-                genre: 'Философский роман',
-                cover: 'https://cv8.litres.ru/pub/c/cover_330/90123456.jpg',
-                description: 'Последний роман Достоевского, затрагивающий глубокие философские и религиозные вопросы через историю семьи Карамазовых.',
-                analysis: {
-                    summary: 'Роман рассказывает о семье Карамазовых: сластолюбивом отце Фёдоре и его трёх сыновьях - Дмитрии, Иване и Алексее. Убийство отца приводит к суду над Дмитрием, а параллельно разворачиваются философские споры о Боге, свободе и морали.',
-                    characters: [
-                        'Фёдор Карамазов - отец, сластолюбец и циник',
-                        'Дмитрий Карамазов - старший сын, страстный и импульсивный',
-                        'Иван Карамазов - средний сын, интеллектуал-атеист',
-                        'Алексей Карамазов - младший сын, послушник',
-                        'Смердяков - лакей, незаконный сын Фёдора',
-                        'Грушенька - женщина, вокруг которой разворачивается драма'
-                    ],
-                    themes: [
-                        'Бог и свобода воли',
-                        'Отцы и дети',
-                        'Преступление и наказание',
-                        'Любовь и ревность',
-                        'Религиозная вера и сомнение'
-                    ],
-                    keyPoints: [
-                        'Семейный конфликт Карамазовых',
-                        'Философские споры Ивана и Алексея',
-                        'Любовный треугольник Дмитрий-Грушенька-Катерина',
-                        'Убийство Фёдора Карамазова',
-                        'Суд над Дмитрием',
-                        'Легенда о Великом Инквизиторе'
-                    ]
-                }
-            }
-        };
-    }
-
     async searchBook() {
-        const query = this.bookTitleInput.value.trim().toLowerCase();
+        const query = this.bookTitleInput.value.trim();
         
         if (!query) {
             this.showError('Пожалуйста, введите название книги');
             return;
         }
 
-        this.showLoading('Ищу книгу в базе данных...');
+        this.showLoading('Ищу книгу в Google Books...');
         this.hideError();
         this.searchBtn.disabled = true;
 
         try {
-            // Ищем книгу в нашей базе данных
-            const bookData = this.findBookInDatabase(query);
+            // Ищем книгу в Google Books API
+            const bookData = await this.searchGoogleBooks(query);
             
             if (bookData) {
                 this.currentBook = bookData;
                 this.displayBookInfo(bookData);
                 
-                // Имитируем анализ для реалистичности
-                this.loadingText.textContent = 'Анализирую содержание книги...';
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Ищем дополнительную информацию в Wikipedia
+                this.loadingText.textContent = 'Ищу информацию в Wikipedia...';
+                const wikiData = await this.searchWikipedia(bookData.title, bookData.author);
                 
-                this.displayAnalysis(bookData.analysis);
+                // Анализируем книгу на основе собранных данных
+                this.loadingText.textContent = 'Анализирую собранную информацию...';
+                const analysis = await this.analyzeBook(bookData, wikiData);
+                
+                this.displayAnalysis(analysis);
                 this.qaSection.classList.remove('hidden');
             } else {
-                this.showError('Книга не найдена. Попробуйте: "Преступление и наказание", "Война и мир", "1984", "Мастер и Маргарита"');
+                this.showError('Книга не найдена. Попробуйте уточнить название и автора');
             }
         } catch (error) {
-            this.showError('Ошибка: ' + error.message);
+            this.showError('Ошибка при поиске: ' + error.message);
             console.error(error);
         } finally {
             this.hideLoading();
@@ -441,36 +89,236 @@ class BookAI {
         }
     }
 
-    findBookInDatabase(query) {
-        // Поиск по ключевым словам в названии
-        for (const [key, book] of Object.entries(this.booksDatabase)) {
-            if (query.includes(key)) {
-                return book;
+    async searchGoogleBooks(query) {
+        // Кэширование запросов
+        const cacheKey = `google_${query}`;
+        if (this.searchCache.has(cacheKey)) {
+            return this.searchCache.get(cacheKey);
+        }
+
+        try {
+            const response = await fetch(
+                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&langRestrict=ru`
+            );
+            
+            if (!response.ok) throw new Error('Ошибка Google Books API');
+            
+            const data = await response.json();
+            
+            if (!data.items || data.items.length === 0) {
+                return null;
+            }
+
+            // Выбираем наиболее релевантный результат
+            const book = data.items[0].volumeInfo;
+            const bookData = {
+                title: book.title || 'Неизвестно',
+                author: book.authors ? book.authors.join(', ') : 'Автор неизвестен',
+                description: book.description || 'Описание отсутствует',
+                year: book.publishedDate ? book.publishedDate.substring(0, 4) : 'Неизвестен',
+                pages: book.pageCount || 'Неизвестно',
+                rating: book.averageRating ? 
+                    '⭐'.repeat(Math.round(book.averageRating)) + ` ${book.averageRating}/5` : 
+                    'Рейтинг отсутствует',
+                cover: book.imageLinks ? 
+                    book.imageLinks.thumbnail.replace('http://', 'https://') : 
+                    'https://via.placeholder.com/150x200/667eea/white?text=No+Cover',
+                genre: book.categories ? book.categories[0] : 'Жанр не указан',
+                googleBooksId: data.items[0].id,
+                previewLink: book.previewLink
+            };
+
+            this.searchCache.set(cacheKey, bookData);
+            return bookData;
+        } catch (error) {
+            console.error('Google Books error:', error);
+            return null;
+        }
+    }
+
+    async searchWikipedia(title, author) {
+        const cacheKey = `wiki_${title}_${author}`;
+        if (this.searchCache.has(cacheKey)) {
+            return this.searchCache.get(cacheKey);
+        }
+
+        try {
+            // Ищем статью в Wikipedia
+            const searchResponse = await fetch(
+                `https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`
+            );
+
+            if (searchResponse.ok) {
+                const wikiData = await searchResponse.json();
+                const result = {
+                    summary: wikiData.extract || '',
+                    url: wikiData.content_urls ? wikiData.content_urls.desktop.page : ''
+                };
+                this.searchCache.set(cacheKey, result);
+                return result;
+            }
+        } catch (error) {
+            console.error('Wikipedia error:', error);
+        }
+
+        return { summary: '', url: '' };
+    }
+
+    async analyzeBook(bookData, wikiData) {
+        // Создаем интеллектуальный анализ на основе собранных данных
+        return {
+            summary: this.generateSummary(bookData, wikiData),
+            characters: this.identifyCharacters(bookData, wikiData),
+            themes: this.identifyThemes(bookData, wikiData),
+            analysis: this.generateAnalysis(bookData, wikiData)
+        };
+    }
+
+    generateSummary(bookData, wikiData) {
+        if (wikiData.summary) {
+            return wikiData.summary;
+        }
+
+        if (bookData.description && bookData.description.length > 100) {
+            return bookData.description;
+        }
+
+        // Генерируем базовое описание на основе имеющейся информации
+        return `"${bookData.title}" ${bookData.author ? `автора ${bookData.author}` : ''} ${
+            bookData.year ? `была опубликована в ${bookData.year} году` : ''
+        }. ${
+            bookData.genre ? `Произведение относится к жанру ${bookData.genre}.` : ''
+        } ${bookData.description || 'Информация о содержании книги требует дополнительного изучения.'}`;
+    }
+
+    identifyCharacters(bookData, wikiData) {
+        // Базовый анализ персонажей для известных книг
+        const knownCharacters = this.getKnownCharacters(bookData.title);
+        if (knownCharacters.length > 0) {
+            return knownCharacters;
+        }
+
+        // Для неизвестных книг создаем общее описание
+        return [
+            'Информация о персонажах требует более глубокого анализа текста',
+            'Для точного определения главных героев необходим доступ к полному тексту произведения'
+        ];
+    }
+
+    identifyThemes(bookData, wikiData) {
+        const knownThemes = this.getKnownThemes(bookData.title);
+        if (knownThemes.length > 0) {
+            return knownThemes;
+        }
+
+        // Анализ тем на основе жанра и описания
+        const themes = [];
+        if (bookData.genre) {
+            themes.push(`Жанровые особенности: ${bookData.genre}`);
+        }
+        if (bookData.description) {
+            if (bookData.description.toLowerCase().includes('любов')) {
+                themes.push('Тема любви и отношений');
+            }
+            if (bookData.description.toLowerCase().includes('войн')) {
+                themes.push('Военная тематика');
+            }
+            if (bookData.description.toLowerCase().includes('общест')) {
+                themes.push('Социальные вопросы');
             }
         }
-        
-        // Дополнительные варианты поиска
-        const searchVariants = {
-            'преступление': 'преступление и наказание',
-            'война': 'война и мир',
-            'каренина': 'анна каренина',
-            'мастер': 'мастер и маргарита',
-            'отцы': 'отцы и дети',
-            'герой': 'герой нашего времени',
-            'мертвые души': 'dead souls',
-            'евгений': 'евгений онегин',
-            'онегин': 'евгений онегин',
-            'идиот': 'idiot',
-            'карамазовы': 'братья карамазовы'
+
+        return themes.length > 0 ? themes : ['Основные темы произведения требуют изучения полного текста'];
+    }
+
+    generateAnalysis(bookData, wikiData) {
+        let analysis = '';
+
+        if (wikiData.summary) {
+            analysis += `На основе информации из Wikipedia: ${wikiData.summary}\n\n`;
+        }
+
+        analysis += `Книга "${bookData.title}" ${
+            bookData.author ? `автора ${bookData.author}` : ''
+        } ${
+            bookData.year ? `была создана в ${bookData.year} году` : ''
+        }. `;
+
+        if (bookData.genre) {
+            analysis += `Произведение относится к жанру ${bookData.genre}, что определяет его основные художественные особенности. `;
+        }
+
+        if (bookData.pages && bookData.pages !== 'Неизвестно') {
+            analysis += `Объём произведения составляет ${bookData.pages} страниц. `;
+        }
+
+        analysis += `Для более детального анализа рекомендуется ознакомиться с полным текстом произведения.`;
+
+        return analysis;
+    }
+
+    getKnownCharacters(bookTitle) {
+        const lowerTitle = bookTitle.toLowerCase();
+        const characters = {
+            'преступление и наказание': [
+                'Родион Раскольников - главный герой, бывший студент',
+                'Соня Мармеладова - дочь чиновника, символ смирения',
+                'Порфирий Петрович - следователь',
+                'Разумихин - друг Раскольникова'
+            ],
+            'война и мир': [
+                'Пьер Безухов - искатель смысла жизни',
+                'Андрей Болконский - аристократ, разочарованный в жизни',
+                'Наташа Ростова - жизнерадостная героиня',
+                'Николай Ростов - честный офицер'
+            ],
+            'анна каренина': [
+                'Анна Каренина - трагическая героиня',
+                'Алексей Вронский - офицер, возлюбленный Анны',
+                'Алексей Каренин - муж Анны',
+                'Константин Левин - помещик, ищущий смысл жизни'
+            ]
         };
 
-        for (const [variant, bookKey] of Object.entries(searchVariants)) {
-            if (query.includes(variant)) {
-                return this.booksDatabase[bookKey];
+        for (const [key, chars] of Object.entries(characters)) {
+            if (lowerTitle.includes(key)) {
+                return chars;
             }
         }
 
-        return null;
+        return [];
+    }
+
+    getKnownThemes(bookTitle) {
+        const lowerTitle = bookTitle.toLowerCase();
+        const themes = {
+            'преступление и наказание': [
+                'Нравственность и свобода воли',
+                'Теория "сверхчеловека"',
+                'Страдание и искупление',
+                'Социальная несправедливость'
+            ],
+            'война и мир': [
+                'Война и мир как состояния души',
+                'Смысл жизни и поиск истины',
+                'Любовь и семейные ценности',
+                'Роль личности в истории'
+            ],
+            'анна каренина': [
+                'Любовь и супружеская верность',
+                'Общественные нормы и личная свобода',
+                'Семейное счастье',
+                'Религия и нравственность'
+            ]
+        };
+
+        for (const [key, themeList] of Object.entries(themes)) {
+            if (lowerTitle.includes(key)) {
+                return themeList;
+            }
+        }
+
+        return [];
     }
 
     async askQuestion() {
@@ -487,97 +335,140 @@ class BookAI {
         }
 
         this.askBtn.disabled = true;
-        this.showLoading('Анализирую вопрос...');
+        this.showLoading('Ищу ответ в открытых источниках...');
 
         try {
-            // Имитируем обработку вопроса AI
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            const answer = this.generateAnswer(question);
+            const answer = await this.searchAnswer(question);
             this.displayQA(question, answer);
             this.questionInput.value = '';
         } catch (error) {
-            this.showError('Ошибка: ' + error.message);
+            this.showError('Ошибка при поиске ответа: ' + error.message);
         } finally {
             this.hideLoading();
             this.askBtn.disabled = false;
         }
     }
 
-    generateAnswer(question) {
-        const book = this.currentBook;
-        const lowerQuestion = question.toLowerCase();
-
-        // Ответы на частые вопросы
-        if (lowerQuestion.includes('кто главный герой') || lowerQuestion.includes('основной персонаж')) {
-            return `Главный герой книги "${book.title}" - ${book.analysis.characters[0].split(' - ')[0]}. ${book.analysis.characters[0]}`;
+    async searchAnswer(question) {
+        // Ищем ответ в разных источниках
+        const sources = [];
+        
+        // Поиск в Wikipedia
+        try {
+            const wikiAnswer = await this.searchWikipediaAnswer(question);
+            if (wikiAnswer) sources.push({ source: 'Wikipedia', content: wikiAnswer });
+        } catch (error) {
+            console.error('Wikipedia search error:', error);
         }
 
-        if (lowerQuestion.includes('о чём книга') || lowerQuestion.includes('сюжет') || lowerQuestion.includes('краткое содержание')) {
-            return book.analysis.summary;
+        // Поиск в Google Books
+        try {
+            const booksAnswer = await this.searchGoogleBooksAnswer(question);
+            if (booksAnswer) sources.push({ source: 'Google Books', content: booksAnswer });
+        } catch (error) {
+            console.error('Google Books search error:', error);
         }
 
-        if (lowerQuestion.includes('темы') || lowerQuestion.includes('идеи')) {
-            return `Основные темы произведения "${book.title}":\n\n• ${book.analysis.themes.join('\n• ')}`;
+        if (sources.length > 0) {
+            const bestAnswer = sources[0];
+            return `${bestAnswer.content}\n\n<div class="source-badge">Источник: ${bestAnswer.source}</div>`;
         }
 
-        if (lowerQuestion.includes('персонаж') && book.analysis.characters) {
-            const characterName = this.extractCharacterName(question);
-            if (characterName) {
-                const character = book.analysis.characters.find(char => 
-                    char.toLowerCase().includes(characterName.toLowerCase())
-                );
-                if (character) {
-                    return character;
-                }
-            }
-            return `Основные персонажи:\n\n• ${book.analysis.characters.join('\n• ')}`;
-        }
-
-        if (lowerQuestion.includes('автор') || lowerQuestion.includes('кто написал')) {
-            return `Книгу "${book.title}" написал ${book.author} в ${book.year} году. ${book.description}`;
-        }
-
-        if (lowerQuestion.includes('конец') || lowerQuestion.includes('финал') || lowerQuestion.includes('развязка')) {
-            return this.getEndingDescription(book.title);
-        }
-
-        // Общий ответ
-        return `На основе анализа книги "${book.title}" могу сказать: ${book.analysis.summary.split('.')[0]}. Если у вас есть конкретный вопрос о сюжете, персонажах или темах - задайте его более подробно.`;
+        // Если не нашли в открытых источниках, генерируем ответ на основе имеющейся информации
+        return this.generateAnswerFromAvailableData(question);
     }
 
-    extractCharacterName(question) {
-        const patterns = [
-            /кто такой (.+?)(?:\?|$)/i,
-            /кто такая (.+?)(?:\?|$)/i,
-            /расскажи о (.+?)(?:\?|$)/i,
-            /персонаж (.+?)(?:\?|$)/i
-        ];
-
-        for (const pattern of patterns) {
-            const match = question.match(pattern);
-            if (match) {
-                return match[1].trim();
+    async searchWikipediaAnswer(question) {
+        const searchQuery = `${this.currentBook.title} ${question}`;
+        try {
+            const response = await fetch(
+                `https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(this.currentBook.title)}`
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.extract) {
+                    return this.extractRelevantInfo(data.extract, question);
+                }
             }
+        } catch (error) {
+            console.error('Wikipedia answer search error:', error);
         }
         return null;
     }
 
-    getEndingDescription(bookTitle) {
-        const endings = {
-            'Преступление и наказание': 'Раскольников признаётся в преступлении и отправляется в ссылку в Сибирь, где начинается его духовное возрождение.',
-            'Война и мир': 'Пьер Безухов и Наташа Ростова находят семейное счастье, а Николай Ростов и Марья Болконская создают семью.',
-            'Анна Каренина': 'Анна Каренина бросается под поезд, не выдержав давления общества и ревности.',
-            'Мастер и Маргарита': 'Мастер и Маргарита получают вечный покой, а Воланд и его свита покидают Москву.',
-            'Отцы и дети': 'Базаров умирает от заражения крови, так и не найдя своего места в жизни.',
-            'Герой нашего времени': 'Печорин погибает по дороге из Персии, так и не изменившись.',
-            'Мёртвые души': 'Чичиков бежит из города, а его афера раскрывается.',
-            'Евгений Онегин': 'Онегин получает отказ от замужней Татьяны и остаётся один.',
-            'Идиот': 'Князь Мышкин сходит с ума после трагической смерти Настасьи Филипповны.',
-            'Братья Карамазовы': 'Дмитрия осуждают на каторгу, Иван сходит с ума, а Алёша продолжает нести добро в мир.'
-        };
+    async searchGoogleBooksAnswer(question) {
+        try {
+            const response = await fetch(
+                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(this.currentBook.title + ' ' + question)}&maxResults=3`
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.items && data.items.length > 0) {
+                    const description = data.items[0].volumeInfo.description;
+                    if (description) {
+                        return this.extractRelevantInfo(description, question);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Google Books answer search error:', error);
+        }
+        return null;
+    }
 
-        return endings[bookTitle] || 'Финал произведения является глубоким и многогранным, затрагивающим важные философские вопросы.';
+    extractRelevantInfo(text, question) {
+        // Упрощенный алгоритм поиска релевантной информации
+        const sentences = text.split('. ');
+        const questionWords = question.toLowerCase().split(' ');
+        
+        for (const sentence of sentences) {
+            const lowerSentence = sentence.toLowerCase();
+            let relevance = 0;
+            
+            for (const word of questionWords) {
+                if (word.length > 3 && lowerSentence.includes(word)) {
+                    relevance++;
+                }
+            }
+            
+            if (relevance >= 2) {
+                return sentence + '.';
+            }
+        }
+        
+        return text.substring(0, 200) + '...';
+    }
+
+    generateAnswerFromAvailableData(question) {
+        const lowerQuestion = question.toLowerCase();
+        const book = this.currentBook;
+
+        if (lowerQuestion.includes('кто автор') || lowerQuestion.includes('кто написал')) {
+            return `Автор книги "${book.title}" - ${book.author || 'информация об авторе отсутствует'}.`;
+        }
+
+        if (lowerQuestion.includes('когда написана') || lowerQuestion.includes('год публикации')) {
+            return `Книга "${book.title}" была опубликована в ${book.year || 'неизвестном'} году.`;
+        }
+
+        if (lowerQuestion.includes('о чём книга') || lowerQuestion.includes('сюжет')) {
+            return book.description || 'Подробное описание сюжета отсутствует в доступных источниках.';
+        }
+
+        if (lowerQuestion.includes('сколько страниц') || lowerQuestion.includes('объём')) {
+            return `Объём книги: ${book.pages || 'информация отсутствует'}.`;
+        }
+
+        if (lowerQuestion.includes('жанр')) {
+            return `Жанр произведения: ${book.genre || 'не указан'}.`;
+        }
+
+        return `На основе доступной информации о книге "${book.title}" могу сказать: ${
+            book.description ? book.description.substring(0, 150) + '...' : 
+            'Для ответа на этот вопрос требуется более детальная информация о произведении.'
+        } Рекомендую уточнить вопрос или ознакомиться с полным текстом книги.`;
     }
 
     displayBookInfo(bookData) {
@@ -588,7 +479,7 @@ class BookAI {
         this.bookDescription.textContent = bookData.description;
         this.bookYear.textContent = `Год: ${bookData.year}`;
         this.bookPages.textContent = `Страниц: ${bookData.pages}`;
-        this.bookGenre.textContent = bookData.genre;
+        this.bookRating.textContent = bookData.rating;
         
         this.bookInfo.classList.remove('hidden');
     }
@@ -604,9 +495,7 @@ class BookAI {
             `<div class="theme-item">${theme}</div>`
         ).join('');
         
-        this.keyPoints.innerHTML = analysis.keyPoints.map(point => 
-            `<div class="key-point">${point}</div>`
-        ).join('');
+        this.analysis.innerHTML = `<p>${analysis.analysis}</p>`;
         
         this.summaryResult.classList.remove('hidden');
     }
