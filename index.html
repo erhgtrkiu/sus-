@@ -3,70 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BookAI - Читает и анализирует любые книги</title>
+    <title>BookAI - Анализ книг с помощью AI</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🤖 BookAI</h1>
-            <p>ИИ читает книги и отвечает на ваши вопросы</p>
+            <p>AI анализирует книги и отвечает на ваши вопросы</p>
         </header>
 
         <div class="search-section">
             <div class="input-group">
-                <input type="text" id="bookTitle" placeholder="Введите название книги и автора... Например: 'Преступление и наказание Достоевский'">
-                <button id="searchBtn">📚 Найти и проанализировать книгу</button>
+                <input type="text" id="bookTitle" placeholder="Введите название книги и автора...">
+                <button id="searchBtn">📚 Найти и проанализировать</button>
+            </div>
+            <div class="api-key-section">
+                <input type="password" id="apiKey" placeholder="Введите ваш OpenAI API ключ">
+                <small>Получите ключ на <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a></small>
             </div>
         </div>
 
         <div id="bookInfo" class="book-info hidden">
             <div class="book-header">
-                <img id="bookCover" src="" alt="Обложка книги" onerror="this.src='https://via.placeholder.com/150x200/667eea/white?text=No+Cover'">
+                <img id="bookCover" src="" alt="Обложка книги">
                 <div class="book-details">
                     <h2 id="bookName"></h2>
                     <p id="bookAuthor"></p>
-                    <p id="bookYear"></p>
-                    <div class="book-stats">
+                    <p id="bookDescription"></p>
+                    <div class="book-meta">
+                        <span id="bookYear"></span>
                         <span id="bookPages"></span>
                         <span id="bookRating"></span>
                     </div>
                 </div>
-            </div>
-            
-            <div class="analysis-progress hidden" id="analysisProgress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <p id="progressText">Анализируем книгу...</p>
             </div>
         </div>
 
         <div id="summaryResult" class="summary-result hidden">
             <div class="summary-header">
                 <h2>📖 Анализ книги</h2>
-                <div class="analysis-time" id="analysisTime"></div>
             </div>
             
             <div class="summary-content">
                 <div class="summary-section">
-                    <h3>🎯 Ключевые моменты</h3>
-                    <div id="keyPoints" class="key-points"></div>
+                    <h3>🎯 Краткое содержание</h3>
+                    <div id="summary" class="summary-text"></div>
                 </div>
                 
                 <div class="summary-section">
-                    <h3>👥 Главные персонажи</h3>
+                    <h3>👥 Персонажи</h3>
                     <div id="characters" class="characters-list"></div>
                 </div>
                 
                 <div class="summary-section">
-                    <h3>💡 Основные темы</h3>
+                    <h3>💡 Ключевые темы</h3>
                     <div id="themes" class="themes-list"></div>
-                </div>
-                
-                <div class="summary-section">
-                    <h3>📊 Сюжетный анализ</h3>
-                    <div id="plotAnalysis" class="summary-text"></div>
                 </div>
             </div>
         </div>
@@ -74,28 +66,26 @@
         <div class="qa-section hidden" id="qaSection">
             <div class="qa-header">
                 <h3>❓ Задайте вопрос о книге</h3>
-                <p>Спросите о персонажах, сюжете, темах или любых деталях</p>
+                <p>AI ответит на основе анализа произведения</p>
             </div>
             
             <div class="question-input">
-                <input type="text" id="questionInput" placeholder="Например: 'Кто такой Пётр Андреевич Гринёв?' или 'В чём основной конфликт произведения?'">
+                <input type="text" id="questionInput" placeholder="Например: 'Кто главный герой?' или 'В чём основной конфликт?'">
                 <button id="askBtn">🎯 Спросить</button>
             </div>
             
-            <div id="qaResults" class="qa-results">
-                <!-- Ответы будут добавляться сюда -->
-            </div>
+            <div id="qaResults" class="qa-results"></div>
         </div>
 
         <div id="loading" class="loading hidden">
             <div class="spinner"></div>
-            <p id="loadingText">Ищем книгу в онлайн-библиотеках...</p>
+            <p id="loadingText">Анализируем книгу...</p>
         </div>
 
         <div id="errorMessage" class="error hidden"></div>
 
         <footer>
-            <p>Использует AI для анализа литературных произведений из открытых источников</p>
+            <p>Использует OpenAI API для анализа книг</p>
         </footer>
     </div>
 
