@@ -65,7 +65,7 @@ class BookAI {
             return;
         }
 
-        this.showLoading('Ищу книгу в Google Books...');
+        this.showLoading('Ищу книгу в библиотеках...');
         this.hideError();
         this.searchBtn.disabled = true;
 
@@ -78,11 +78,10 @@ class BookAI {
                 this.generateChaptersList(bookData);
                 this.bookInfo.classList.remove('hidden');
                 
-                // Скрываем предыдущие результаты
                 this.analysisResult.classList.add('hidden');
                 this.qaSection.classList.add('hidden');
             } else {
-                this.showError('Книга не найдена. Попробуйте другое название');
+                this.showError('Книга не найдена. Попробуйте: "Преступление и наказание", "Война и мир", "Капитанская дочка"');
             }
         } catch (error) {
             this.showError('Ошибка при поиске: ' + error.message);
@@ -96,10 +95,10 @@ class BookAI {
     async searchGoogleBooks(query) {
         try {
             const response = await fetch(
-                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`
+                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&langRestrict=ru`
             );
             
-            if (!response.ok) throw new Error('Ошибка подключения к Google Books');
+            if (!response.ok) throw new Error('Ошибка подключения');
             
             const data = await response.json();
             if (!data.items || data.items.length === 0) return null;
@@ -140,24 +139,15 @@ class BookAI {
     }
 
     generateChaptersForBook(bookData) {
-        const pageCount = bookData.pages;
-        let chapters = [];
-        
-        if (pageCount && pageCount > 50) {
-            const chapterCount = Math.min(Math.floor(pageCount / 25), 12);
-            for (let i = 1; i <= chapterCount; i++) {
-                chapters.push(`Глава ${i}`);
-            }
-        } else {
-            chapters = [
-                'Глава 1 - Введение и завязка',
-                'Глава 2 - Развитие сюжета', 
-                'Глава 3 - Кульминация событий',
-                'Глава 4 - Развязка и заключение'
-            ];
-        }
-        
-        return chapters;
+        // Для школьной программы делаем стандартные разделы
+        return [
+            'Введение и экспозиция',
+            'Завязка сюжета', 
+            'Развитие действия',
+            'Кульминация',
+            'Развязка',
+            'Заключение'
+        ];
     }
 
     toggleChapter(index) {
@@ -195,15 +185,15 @@ class BookAI {
 
     async analyzeSelectedChapters() {
         if (this.selectedChapters.size === 0) {
-            this.showError('Пожалуйста, выберите хотя бы одну главу');
+            this.showError('Выберите разделы для анализа');
             return;
         }
 
-        this.showLoading('Ищу информацию о книге в интернете...');
+        this.showLoading('Создаю анализ для урока...');
         this.analyzeChaptersBtn.disabled = true;
 
         try {
-            const analysis = await this.searchBookAnalysis();
+            const analysis = await this.createSchoolAnalysis();
             this.bookAnalysis = analysis;
             this.displayAnalysis(analysis);
             this.analysisResult.classList.remove('hidden');
@@ -216,193 +206,199 @@ class BookAI {
         }
     }
 
-    async searchBookAnalysis() {
-        // Ищем информацию о книге в разных источниках
-        const searchPromises = [
-            this.searchBookSummary(),
-            this.searchBookCharacters(),
-            this.searchBookThemes()
-        ];
+    async createSchoolAnalysis() {
+        const bookTitle = this.currentBook.title.toLowerCase();
+        const selectedChapters = Array.from(this.selectedChapters);
+        const chapterNames = this.generateChaptersForBook(this.currentBook);
+        const selectedChapterNames = selectedChapters.map(index => chapterNames[index]);
 
-        const results = await Promise.allSettled(searchPromises);
+        // Создаем качественный анализ для школьной программы
+        const analysis = this.generateDetailedSchoolAnalysis(bookTitle, selectedChapterNames);
         
-        const summary = results[0].status === 'fulfilled' ? results[0].value : null;
-        const characters = results[1].status === 'fulfilled' ? results[1].value : null;
-        const keyPoints = results[2].status === 'fulfilled' ? results[2].value : null;
-
-        const selectedChaptersArray = Array.from(this.selectedChapters);
-        const chapters = this.generateChaptersForBook(this.currentBook);
-        const selectedChapterNames = selectedChaptersArray.map(index => chapters[index]);
-
         return {
-            chaptersSummary: summary || this.generateFallbackSummary(selectedChapterNames),
-            characters: characters || this.generateFallbackCharacters(),
-            keyPoints: keyPoints || this.generateFallbackKeyPoints(selectedChapterNames),
+            chaptersSummary: analysis.summary,
+            characters: analysis.characters,
+            keyPoints: analysis.keyPoints,
             selectedChapters: selectedChapterNames,
-            source: 'Сборный анализ из открытых источников'
+            source: 'Анализ для школьной программы'
         };
     }
 
-    async searchBookSummary() {
-        try {
-            // Используем описание из Google Books
-            if (this.currentBook.description && this.currentBook.description.length > 100) {
-                return this.currentBook.description;
-            }
-
-            // Ищем дополнительные источники через поиск
-            const searchQuery = `${this.currentBook.title} ${this.currentBook.author} краткое содержание`;
-            const searchResults = await this.searchWeb(searchQuery);
-            
-            if (searchResults && searchResults.length > 0) {
-                return searchResults[0].snippet || 'Информация о содержании найдена в поиске';
-            }
-
-            return null;
-        } catch (error) {
-            console.log('Summary search failed:', error);
-            return null;
-        }
-    }
-
-    async searchBookCharacters() {
-        try {
-            const searchQuery = `${this.currentBook.title} ${this.currentBook.author} персонажи герои`;
-            const searchResults = await this.searchWeb(searchQuery);
-            
-            if (searchResults && searchResults.length > 0) {
-                // Извлекаем имена из сниппетов поиска
-                const characters = this.extractCharactersFromSearchResults(searchResults);
-                return characters.length > 0 ? characters : null;
-            }
-
-            return null;
-        } catch (error) {
-            console.log('Characters search failed:', error);
-            return null;
-        }
-    }
-
-    async searchBookThemes() {
-        try {
-            const searchQuery = `${this.currentBook.title} ${this.currentBook.author} темы идеи анализ`;
-            const searchResults = await this.searchWeb(searchQuery);
-            
-            if (searchResults && searchResults.length > 0) {
-                const themes = this.extractThemesFromSearchResults(searchResults);
-                return themes.length > 0 ? themes : null;
-            }
-
-            return null;
-        } catch (error) {
-            console.log('Themes search failed:', error);
-            return null;
-        }
-    }
-
-    async searchWeb(query) {
-        try {
-            // Используем Google Custom Search API или аналогичный сервис
-            // Для демонстрации используем Google Books как fallback
-            const response = await fetch(
-                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3`
-            );
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data.items && data.items.length > 0) {
-                    return data.items.map(item => ({
-                        title: item.volumeInfo.title,
-                        snippet: item.volumeInfo.description,
-                        link: item.volumeInfo.infoLink
-                    }));
-                }
-            }
-            return null;
-        } catch (error) {
-            console.log('Web search failed:', error);
-            return null;
-        }
-    }
-
-    extractCharactersFromSearchResults(results) {
-        const characters = new Set();
-        
-        results.forEach(result => {
-            if (result.snippet) {
-                // Простой алгоритм извлечения имен собственных
-                const words = result.snippet.split(/\s+/);
-                words.forEach(word => {
-                    if (word.length > 2 && /[А-Я][а-я]+/.test(word)) {
-                        const cleanWord = word.replace(/[.,!?;:()]/g, '');
-                        if (cleanWord.length > 2 && !this.isCommonWord(cleanWord)) {
-                            characters.add(cleanWord);
-                        }
-                    }
-                });
-            }
-        });
-
-        return Array.from(characters).slice(0, 6).map(char => `${char} - упоминается в описании`);
-    }
-
-    extractThemesFromSearchResults(results) {
-        const themes = new Set();
-        const themeKeywords = {
-            'любов': 'Тема любви и отношений',
-            'войн': 'Военная тематика',
-            'общест': 'Социальные вопросы',
-            'нравствен': 'Нравственные проблемы',
-            'религи': 'Религиозные темы',
-            'семь': 'Семейные отношения',
-            'власт': 'Тема власти',
-            'свобод': 'Свобода и выбор'
+    generateDetailedSchoolAnalysis(bookTitle, selectedChapters) {
+        let analysis = {
+            summary: '',
+            characters: [],
+            keyPoints: []
         };
 
-        results.forEach(result => {
-            if (result.snippet) {
-                const lowerSnippet = result.snippet.toLowerCase();
-                for (const [keyword, theme] of Object.entries(themeKeywords)) {
-                    if (lowerSnippet.includes(keyword)) {
-                        themes.add(theme);
-                    }
-                }
-            }
-        });
+        // Анализ для популярных школьных произведений
+        if (bookTitle.includes('преступление') && bookTitle.includes('наказание')) {
+            analysis = this.analyzeCrimeAndPunishment(selectedChapters);
+        } else if (bookTitle.includes('война') && bookTitle.includes('мир')) {
+            analysis = this.analyzeWarAndPeace(selectedChapters);
+        } else if (bookTitle.includes('капитанская') && bookTitle.includes('дочка')) {
+            analysis = this.analyzeCaptainsDaughter(selectedChapters);
+        } else if (bookTitle.includes('герой') && bookTitle.includes('времени')) {
+            analysis = this.analyzeHeroOfOurTime(selectedChapters);
+        } else if (bookTitle.includes('отцы') && bookTitle.includes('дети')) {
+            analysis = this.analyzeFathersAndSons(selectedChapters);
+        } else if (bookTitle.includes('евгений') && bookTitle.includes('онегин')) {
+            analysis = this.analyzeEugeneOnegin(selectedChapters);
+        } else {
+            analysis = this.generateGeneralAnalysis(selectedChapters);
+        }
 
-        return Array.from(themes).slice(0, 4);
+        return analysis;
     }
 
-    generateFallbackSummary(selectedChapters) {
-        return `На основе информации о книге "${this.currentBook.title}" автора ${this.currentBook.author}. 
-        
-Выбраны главы: ${selectedChapters.join(', ')}. 
-
-${this.currentBook.description || 'Для получения детального содержания выбранных глав рекомендуется ознакомиться с полным текстом произведения или найти специализированный анализ.'}`;
-    }
-
-    generateFallbackCharacters() {
-        return [
-            'Информация о персонажах требует изучения полного текста',
-            'Рекомендуется найти анализ персонажей в литературных источниках'
+    analyzeCrimeAndPunishment(selectedChapters) {
+        const characters = [
+            'Родион Раскольников - бывший студент, создатель теории о "сверхчеловеке"',
+            'Соня Мармеладова - дочь чиновника, символ христианского смирения',
+            'Порфирий Петрович - следователь, разгадавший преступление',
+            'Дмитрий Разумихин - друг Раскольникова, противоположность ему',
+            'Аркадий Свидригайлов - циничный помещик, двойник Раскольникова',
+            'Катерина Ивановна - жена Мармеладова, трагическая фигура'
         ];
+
+        const keyPoints = [
+            'Теория Раскольникова о "тварях дрожащих" и "право имеющих"',
+            'Убийство старухи-процентщицы - проверка теории',
+            'Душевные муки и болезнь после преступления',
+            'Роль Сони Мармеладовой в духовном возрождении',
+            'Признание и суд над Раскольниковым',
+            'Ссылка в Сибирь как путь к искуплению'
+        ];
+
+        const summary = this.generateChapterSummary(selectedChapters, [
+            'Знакомство с Раскольниковым и его теорией. Петербург 1860-х годов.',
+            'Подготовка к преступлению. Социальные условия толкают на убийство.',
+            'Совершение преступления и первые последствия. Психологические терзания.',
+            'Расследование Порфирия Петровича. Психологическая дуэль.',
+            'Встреча с Соней Мармеладовой. Христианские ценности vs нигилизм.',
+            'Признание и наказание. Духовное перерождение героя.'
+        ]);
+
+        return { summary, characters: characters.slice(0, 4), keyPoints: keyPoints.slice(0, 4) };
     }
 
-    generateFallbackKeyPoints(selectedChapters) {
-        return [
-            `Анализ ${selectedChapters.length} выбранных глав`,
-            'Ключевые события развития сюжета',
-            'Характеристика основных персонажей',
-            'Основные конфликты и их развитие'
+    analyzeCaptainsDaughter(selectedChapters) {
+        const characters = [
+            'Пётр Гринёв - молодой дворянин, главный герой',
+            'Маша Миронова - капитанская дочка, возлюбленная Гринёва',
+            'Емельян Пугачёв - предводитель восстания, сложный персонаж',
+            'Алексей Швабрин - антагонист, предатель',
+            'Капитан Миронов - комендант Белогорской крепости',
+            'Савельич - верный слуга Гринёва'
         ];
+
+        const keyPoints = [
+            'Восстание Пугачёва 1773-1775 годов',
+            'Честь и долг русского офицера',
+            'Любовь в условиях исторических потрясений',
+            'Народный характер восстания',
+            'Проблема милосердия и справедливости',
+            'Историческая достоверность событий'
+        ];
+
+        const summary = this.generateChapterSummary(selectedChapters, [
+            'Детство Гринёва. Отправление на службу. Встреча с Пугачёвым.',
+            'Прибытие в Белогорскую крепость. Знакомство с Машей Мироновой.',
+            'Начало восстания. Осада и падение крепости.',
+            'Встречи с Пугачёвым. Проблема милосердия и благодарности.',
+            'Спасение Маши. Противостояние со Швабриным.',
+            'Арест Гринёва. Суд и оправдание. Счастливый финал.'
+        ]);
+
+        return { summary, characters: characters.slice(0, 4), keyPoints: keyPoints.slice(0, 4) };
     }
 
-    isCommonWord(word) {
-        const commonWords = [
-            'это', 'что', 'как', 'так', 'вот', 'был', 'сказал', 'глава', 'книга', 
-            'роман', 'автор', 'который', 'очень', 'после', 'тогда', 'потом'
+    analyzeWarAndPeace(selectedChapters) {
+        const characters = [
+            'Пьер Безухов - искатель смысла жизни, незаконнорожденный сын графа',
+            'Андрей Болконский - аристократ, разочарованный в светской жизни',
+            'Наташа Ростова - жизнерадостная девушка, символ русской души',
+            'Николай Ростов - честный офицер, представитель старого дворянства',
+            'Кутузов - главнокомандующий, выразитель народной мудрости',
+            'Наполеон - антипод Кутузова, олицетворение индивидуализма'
         ];
-        return commonWords.includes(word.toLowerCase());
+
+        const keyPoints = [
+            'Отечественная война 1812 года как народная война',
+            'Семья Ростовых vs семья Болконских',
+            'Духовные искания Пьера Безухова',
+            'Философия истории Толстого',
+            'Бородинское сражение - кульминация романа',
+            'Мысль семейная в произведении'
+        ];
+
+        const summary = this.generateChapterSummary(selectedChapters, [
+            'Светское общество Петербурга 1805 года. Знакомство с главными героями.',
+            'Война 1805 года. Шенграбен и Аустерлиц. Ранение Болконского.',
+            'Мирная жизнь. Сватовство, браки, семейные отношения.',
+            '1812 год. Наполеон в России. Бородинское сражение.',
+            'Пожар Москвы. Партизанская война. Отступление французов.',
+            'Послевоенная жизнь. Духовное обновление героев.'
+        ]);
+
+        return { summary, characters: characters.slice(0, 4), keyPoints: keyPoints.slice(0, 4) };
+    }
+
+    analyzeHeroOfOurTime(selectedChapters) {
+        const characters = [
+            'Григорий Печорин - "лишний человек", главный герой',
+            'Бэла - черкесская княжна, первая жертва Печорина',
+            'Максим Максимыч - штабс-капитан, рассказчик',
+            'Княжна Мэри - светская девушка, объект игры Печорина',
+            'Вера - единственная женщина, которую любил Печорин',
+            'Грушницкий - юнкер, пародия на романтического героя'
+        ];
+
+        const keyPoints = [
+            'Печорин как "лишний человек" 1830-х годов',
+            'Психологический портрет поколения',
+            'Любовь как игра и эксперимент',
+            'Проблема счастья и смысла жизни',
+            'Композиция романа (повести в разном порядке)',
+            'Романтизм vs реализм в произведении'
+        ];
+
+        const summary = this.generateChapterSummary(selectedChapters, [
+            '"Бэла" - история похищения черкесской княжны. Трагический финал.',
+            '"Максим Максимыч" - встреча через несколько лет. Холодность Печорина.',
+            '"Тамань" - опасное приключение с контрабандистами.',
+            '"Княжна Мэри" - светский роман в Пятигорске. Дуэль с Грушницким.',
+            '"Фаталист" - философские размышления о судьбе.',
+            'Образ Печорина как диагноз эпохи.'
+        ]);
+
+        return { summary, characters: characters.slice(0, 4), keyPoints: keyPoints.slice(0, 4) };
+    }
+
+    generateChapterSummary(selectedChapters, allSummaries) {
+        return selectedChapters.map(chapter => {
+            const index = this.generateChaptersForBook(this.currentBook).indexOf(chapter);
+            return `**${chapter}**\n\n${allSummaries[index] || allSummaries[0]}`;
+        }).join('\n\n');
+    }
+
+    generateGeneralAnalysis(selectedChapters) {
+        return {
+            summary: selectedChapters.map(chapter => 
+                `**${chapter}**\n\nВ этом разделе раскрываются основные события произведения, характеры героев и ключевые идеи автора.`
+            ).join('\n\n'),
+            characters: [
+                'Главный герой - центральный персонаж произведения',
+                'Второстепенные персонажи - помогают раскрыть основной конфликт',
+                'Антагонист - противник главного героя'
+            ],
+            keyPoints: [
+                'Основной конфликт произведения',
+                'Развитие сюжета и характеров',
+                'Ключевые идеи и темы',
+                'Художественные особенности'
+            ]
+        };
     }
 
     generatePlaceholderCover(title) {
@@ -414,20 +410,20 @@ ${this.currentBook.description || 'Для получения детальног�
         const question = this.questionInput.value.trim();
         
         if (!question) {
-            this.showError('Пожалуйста, введите вопрос');
+            this.showError('Введите вопрос о книге');
             return;
         }
         
         if (!this.currentBook || !this.bookAnalysis) {
-            this.showError('Сначала проанализируйте главы книги');
+            this.showError('Сначала проанализируйте книгу');
             return;
         }
 
         this.askBtn.disabled = true;
-        this.showLoading('Ищу ответ...');
+        this.showLoading('Формирую ответ...');
 
         try {
-            const answer = await this.generateAnswer(question);
+            const answer = this.generateAnswer(question);
             this.displayQA(question, answer);
             this.questionInput.value = '';
         } catch (error) {
@@ -438,41 +434,30 @@ ${this.currentBook.description || 'Для получения детальног�
         }
     }
 
-    async generateAnswer(question) {
+    generateAnswer(question) {
         const lowerQuestion = question.toLowerCase();
         
-        if (this.bookAnalysis) {
-            if (lowerQuestion.includes('содержание') || lowerQuestion.includes('о чём') || lowerQuestion.includes('сюжет')) {
-                return this.bookAnalysis.chaptersSummary;
-            }
-
-            if (lowerQuestion.includes('персонаж') || lowerQuestion.includes('герой')) {
-                return 'Персонажи:\n\n• ' + this.bookAnalysis.characters.join('\n• ');
-            }
-
-            if (lowerQuestion.includes('ключевой') || lowerQuestion.includes('момент') || lowerQuestion.includes('событие')) {
-                return 'Ключевые аспекты:\n\n• ' + this.bookAnalysis.keyPoints.join('\n• ');
-            }
-
-            if (lowerQuestion.includes('глава') || lowerQuestion.includes('часть')) {
-                return 'Выбранные главы:\n\n• ' + this.bookAnalysis.selectedChapters.join('\n• ');
-            }
+        if (lowerQuestion.includes('о чём') || lowerQuestion.includes('сюжет') || lowerQuestion.includes('краткое содержание')) {
+            return this.bookAnalysis.chaptersSummary;
         }
 
-        // Общие вопросы о книге
-        if (lowerQuestion.includes('кто автор') || lowerQuestion.includes('кто написал')) {
-            return `Автор книги "${this.currentBook.title}" - ${this.currentBook.author || 'информация об авторе отсутствует'}.`;
+        if (lowerQuestion.includes('персонаж') || lowerQuestion.includes('герой')) {
+            return '**Главные персонажи:**\n\n' + this.bookAnalysis.characters.map(char => `• ${char}`).join('\n');
         }
 
-        if (lowerQuestion.includes('когда') || lowerQuestion.includes('год')) {
-            return `Книга была опубликована в ${this.currentBook.year || 'неизвестном'} году.`;
+        if (lowerQuestion.includes('тема') || lowerQuestion.includes('идея') || lowerQuestion.includes('проблем')) {
+            return '**Ключевые темы:**\n\n' + this.bookAnalysis.keyPoints.map(point => `• ${point}`).join('\n');
         }
 
-        if (lowerQuestion.includes('сколько страниц') || lowerQuestion.includes('объём')) {
-            return `Объём книги: ${this.currentBook.pages || 'информация отсутствует'}.`;
+        if (lowerQuestion.includes('автор')) {
+            return `Автор: **${this.currentBook.author}**\nГод написания: ${this.currentBook.year || 'неизвестен'}\nЖанр: ${this.currentBook.genre || 'не указан'}`;
         }
 
-        return `На основе анализа книги "${this.currentBook.title}": ${this.bookAnalysis.chaptersSummary.substring(0, 200)}...`;
+        if (lowerQuestion.includes('анализ') || lowerQuestion.includes('мысль')) {
+            return `**Анализ произведения "${this.currentBook.title}":**\n\n${this.bookAnalysis.chaptersSummary.substring(0, 300)}...`;
+        }
+
+        return `На вопрос о книге "${this.currentBook.title}": ${this.bookAnalysis.chaptersSummary.substring(0, 200)}...\n\nДля более точного ответа задайте конкретный вопрос о сюжете, персонажах или темах.`;
     }
 
     displayBookInfo(bookData) {
@@ -480,32 +465,24 @@ ${this.currentBook.description || 'Для получения детальног�
         this.bookCover.alt = bookData.title;
         this.bookName.textContent = bookData.title;
         this.bookAuthor.textContent = `Автор: ${bookData.author}`;
-        this.bookDescription.textContent = bookData.description;
+        this.bookDescription.textContent = bookData.description || 'Классическое произведение русской литературы';
         this.bookYear.textContent = `Год: ${bookData.year}`;
         this.bookPages.textContent = `Страниц: ${bookData.pages}`;
         this.bookRating.textContent = bookData.rating;
     }
 
     displayAnalysis(analysis) {
-        if (this.chaptersSummary) {
-            this.chaptersSummary.innerHTML = `<p>${analysis.chaptersSummary}</p>`;
-        }
+        this.chaptersSummary.innerHTML = `<div class="analysis-text">${analysis.chaptersSummary.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
         
-        if (this.characters) {
-            this.characters.innerHTML = analysis.characters.map(character => 
-                `<div class="character-item">${character}</div>`
-            ).join('');
-        }
+        this.characters.innerHTML = analysis.characters.map(character => 
+            `<div class="character-item">${character}</div>`
+        ).join('');
         
-        if (this.keyPoints) {
-            this.keyPoints.innerHTML = analysis.keyPoints.map(point => 
-                `<div class="key-point">${point}</div>`
-            ).join('');
-        }
+        this.keyPoints.innerHTML = analysis.keyPoints.map(point => 
+            `<div class="key-point">${point}</div>`
+        ).join('');
         
-        if (this.analysisStats) {
-            this.analysisStats.textContent = `Проанализировано глав: ${analysis.selectedChapters.length} | Источник: ${analysis.source}`;
-        }
+        this.analysisStats.textContent = `Анализ для урока литературы | Разделов: ${analysis.selectedChapters.length}`;
     }
 
     displayQA(question, answer) {
@@ -513,8 +490,7 @@ ${this.currentBook.description || 'Для получения детальног�
         qaItem.className = 'qa-item';
         qaItem.innerHTML = `
             <div class="question">❓ ${question}</div>
-            <div class="answer">🤖 ${answer}</div>
-            <div class="source-info">Ответ на основе анализа ${this.bookAnalysis.selectedChapters.length} глав</div>
+            <div class="answer">${answer.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
         `;
         
         this.qaResults.prepend(qaItem);
@@ -544,5 +520,5 @@ ${this.currentBook.description || 'Для получения детальног�
 let app;
 document.addEventListener('DOMContentLoaded', () => {
     app = new BookAI();
-    console.log('BookAI initialized - реальный поиск анализа');
+    console.log('BookAI для школьников запущен!');
 });
