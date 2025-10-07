@@ -13,76 +13,68 @@
             <p>Получите краткое содержание любой книги и ключевые моменты</p>
         </header>
 
-        <main>
-            <div class="search-section">
-                <div class="input-group">
-                    <input type="text" id="bookTitle" placeholder="Введите название книги..." autocomplete="off">
-                    <div id="suggestions" class="suggestions"></div>
+        <div class="search-section">
+            <input type="text" id="bookTitle" placeholder="Введите название книги... Например: 'Преступление и наказание'">
+            <button id="searchBtn">Найти книгу</button>
+        </div>
+
+        <div id="bookInfo" class="book-info hidden">
+            <div class="book-header">
+                <img id="bookCover" src="" alt="Обложка книги">
+                <div class="book-details">
+                    <h2 id="bookName"></h2>
+                    <p id="bookAuthor"></p>
+                    <p id="bookYear"></p>
+                    <div class="rating" id="bookRating"></div>
                 </div>
-                <button id="searchBtn">Найти книгу</button>
             </div>
 
-            <div id="bookInfo" class="book-info hidden">
-                <div class="book-header">
-                    <img id="bookCover" src="" alt="Обложка книги">
-                    <div class="book-details">
-                        <h2 id="bookName"></h2>
-                        <p id="bookAuthor"></p>
-                        <p id="bookYear"></p>
-                        <div class="rating">
-                            <span id="bookRating"></span>
-                        </div>
-                    </div>
+            <div class="chapters-section">
+                <h3>Выберите главы для анализа:</h3>
+                <div id="chaptersList" class="chapters-list"></div>
+                <div class="chapters-controls">
+                    <button id="selectAllBtn">Выбрать все</button>
+                    <button id="deselectAllBtn">Снять выделение</button>
                 </div>
-
-                <div class="chapters-section">
-                    <h3>Выберите главы для анализа:</h3>
-                    <div id="chaptersList" class="chapters-list"></div>
-                    <div class="chapters-controls">
-                        <button id="selectAllBtn">Выбрать все</button>
-                        <button id="deselectAllBtn">Снять выделение</button>
-                    </div>
-                </div>
-
-                <button id="generateSummaryBtn" class="generate-btn">Сгенерировать краткое содержание</button>
             </div>
 
-            <div id="loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Анализируем книгу и генерируем содержание...</p>
-            </div>
+            <button id="generateSummaryBtn">Сгенерировать краткое содержание</button>
+        </div>
 
-            <div id="summaryResult" class="summary-result hidden">
-                <div class="summary-header">
-                    <h2>Краткое содержание</h2>
-                    <button id="exportBtn" class="export-btn">📥 Экспорт в PDF</button>
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Анализируем книгу и генерируем содержание...</p>
+        </div>
+
+        <div id="summaryResult" class="summary-result hidden">
+            <div class="summary-header">
+                <h2>Краткое содержание</h2>
+            </div>
+            
+            <div class="summary-content">
+                <div class="summary-section">
+                    <h3>📖 Общее содержание</h3>
+                    <div id="generalSummary" class="summary-text"></div>
                 </div>
                 
-                <div class="summary-content">
-                    <div class="summary-section">
-                        <h3>📖 Общее содержание</h3>
-                        <div id="generalSummary" class="summary-text"></div>
-                    </div>
-                    
-                    <div class="summary-section">
-                        <h3>🎯 Ключевые моменты</h3>
-                        <div id="keyPoints" class="key-points"></div>
-                    </div>
-                    
-                    <div class="summary-section">
-                        <h3>👥 Главные персонажи</h3>
-                        <div id="characters" class="characters-list"></div>
-                    </div>
-                    
-                    <div class="summary-section">
-                        <h3>💡 Основные идеи и темы</h3>
-                        <div id="themes" class="themes-list"></div>
-                    </div>
+                <div class="summary-section">
+                    <h3>🎯 Ключевые моменты</h3>
+                    <div id="keyPoints" class="key-points"></div>
+                </div>
+                
+                <div class="summary-section">
+                    <h3>👥 Главные персонажи</h3>
+                    <div id="characters" class="characters-list"></div>
+                </div>
+                
+                <div class="summary-section">
+                    <h3>💡 Основные идеи и темы</h3>
+                    <div id="themes" class="themes-list"></div>
                 </div>
             </div>
+        </div>
 
-            <div id="errorMessage" class="error hidden"></div>
-        </main>
+        <div id="errorMessage" class="error hidden"></div>
 
         <footer>
             <p>Используется AI для анализа литературных произведений</p>
