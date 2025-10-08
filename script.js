@@ -9,6 +9,7 @@ class BookAI {
     }
 
     initializeElements() {
+        // Основные элементы
         this.bookTitleInput = document.getElementById('bookTitle');
         this.searchBtn = document.getElementById('searchBtn');
         this.analyzeBookBtn = document.getElementById('analyzeBookBtn');
@@ -24,6 +25,7 @@ class BookAI {
         this.qaResults = document.getElementById('qaResults');
         this.errorMessage = document.getElementById('errorMessage');
         
+        // Элементы для глав (могут быть null если не найдены)
         this.chaptersList = document.getElementById('chaptersList');
         this.selectAllBtn = document.getElementById('selectAllBtn');
         this.deselectAllBtn = document.getElementById('deselectAllBtn');
@@ -31,19 +33,26 @@ class BookAI {
     }
 
     bindEvents() {
+        // Основные события (элементы гарантированно есть)
         this.searchBtn.addEventListener('click', () => this.searchBook());
         this.bookTitleInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.searchBook();
         });
-        this.analyzeBookBtn.addEventListener('click', () => this.analyzeBook());
         this.askBtn.addEventListener('click', () => this.askQuestion());
         this.questionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.askQuestion();
         });
         
-        this.selectAllBtn.addEventListener('click', () => this.selectAllChapters());
-        this.deselectAllBtn.addEventListener('click', () => this.deselectAllChapters());
-        this.analyzeChaptersBtn.addEventListener('click', () => this.analyzeSelectedChapters());
+        // События для глав (проверяем наличие элементов)
+        if (this.selectAllBtn) {
+            this.selectAllBtn.addEventListener('click', () => this.selectAllChapters());
+        }
+        if (this.deselectAllBtn) {
+            this.deselectAllBtn.addEventListener('click', () => this.deselectAllChapters());
+        }
+        if (this.analyzeChaptersBtn) {
+            this.analyzeChaptersBtn.addEventListener('click', () => this.analyzeSelectedChapters());
+        }
     }
 
     async searchBook() {
@@ -67,7 +76,7 @@ class BookAI {
                 return;
             }
 
-            const bookData = await this.fetchBookDataWithFallback(query);
+            const bookData = await this.generateFallbackBookData(query);
             this.requestCache.set(cacheKey, bookData);
             this.currentBook = bookData;
             this.displayBookInfo(bookData);
@@ -79,84 +88,37 @@ class BookAI {
         }
     }
 
-    async fetchBookDataWithFallback(query) {
-        try {
-            // Пробуем Google Books API
-            return await this.fetchGoogleBooksData(query);
-        } catch (error) {
-            console.log('Google Books failed, using fallback:', error);
-            // Используем резервный метод
-            return this.generateFallbackBookData(query);
-        }
-    }
-
-    async fetchGoogleBooksData(query) {
-        // Добавляем задержку между запросами
-        await this.delay(1000);
-        
-        const response = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=1&langRestrict=ru`
-        );
-        
-        if (response.status === 429) {
-            throw new Error('Слишком много запросов. Попробуйте позже.');
-        }
-        
-        if (!response.ok) {
-            throw new Error('Ошибка подключения к API');
-        }
-        
-        const data = await response.json();
-        
-        if (!data.items || data.items.length === 0) {
-            throw new Error('Книга не найдена');
-        }
-
-        const book = data.items[0].volumeInfo;
-        return {
-            title: book.title,
-            author: book.authors?.[0] || 'Неизвестен',
-            description: book.description || '',
-            year: book.publishedDate?.substring(0, 4) || '',
-            pages: book.pageCount || 0,
-            cover: book.imageLinks?.thumbnail || this.generatePlaceholderCover(book.title),
-            source: 'Google Books'
-        };
-    }
-
     generateFallbackBookData(query) {
-        // Генерируем данные о книге локально
-        const seed = this.createSeed(query);
-        const rng = this.createRNG(seed);
-        
-        const authors = [
-            'Лев Толстой', 'Фёдор Достоевский', 'Александр Пушкин', 
-            'Антон Чехов', 'Иван Тургенев', 'Николай Гоголь',
-            'Михаил Булгаков', 'Александр Солженицын', 'Владимир Набоков'
-        ];
-        
-        const genres = [
-            'роман', 'повесть', 'рассказ', 'поэма', 'драма', 
-            'комедия', 'трагедия', 'сатира', 'фантастика'
-        ];
-        
-        return {
-            title: query,
-            author: authors[Math.floor(rng() * authors.length)],
-            description: this.generateBookDescription(query, rng),
-            year: (1800 + Math.floor(rng() * 200)).toString(),
-            pages: 200 + Math.floor(rng() * 400),
-            cover: this.generatePlaceholderCover(query),
-            source: 'Локальная база'
-        };
+        // Генерируем данные о книге локально (без API)
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const seed = this.createSeed(query);
+                const rng = this.createRNG(seed);
+                
+                const authors = [
+                    'Лев Толстой', 'Фёдор Достоевский', 'Александр Пушкин', 
+                    'Антон Чехов', 'Иван Тургенев', 'Николай Гоголь',
+                    'Михаил Булгаков', 'Александр Солженицын', 'Владимир Набоков'
+                ];
+                
+                resolve({
+                    title: query,
+                    author: authors[Math.floor(rng() * authors.length)],
+                    description: this.generateBookDescription(query, rng),
+                    year: (1800 + Math.floor(rng() * 200)).toString(),
+                    pages: 200 + Math.floor(rng() * 400),
+                    cover: this.generatePlaceholderCover(query),
+                    source: 'Локальная база'
+                });
+            }, 500);
+        });
     }
 
     generateBookDescription(title, rng) {
         const descriptions = [
             `"${title}" - классическое произведение русской литературы, исследующее глубины человеческой души.`,
             `В произведении "${title}" автор мастерски раскрывает сложные социальные и философские проблемы.`,
-            `"${title}" представляет собой многоплановое повествование о судьбах людей в переломные исторические моменты.`,
-            `Этот роман считается одним из величайших произведений мировой литературы, затрагивающим вечные темы.`
+            `"${title}" представляет собой многоплановое повествование о судьбах людей в переломные исторические моменты.`
         ];
         
         return descriptions[Math.floor(rng() * descriptions.length)];
@@ -217,6 +179,8 @@ class BookAI {
     }
 
     displayChaptersList(chapters) {
+        if (!this.chaptersList) return;
+        
         this.chaptersList.innerHTML = chapters.map((chapter, index) => `
             <div class="chapter-item" onclick="app.toggleChapter(${index})">
                 <input type="checkbox" id="chapter-${index}">
@@ -229,6 +193,8 @@ class BookAI {
 
     toggleChapter(index) {
         const checkbox = document.getElementById(`chapter-${index}`);
+        if (!checkbox) return;
+        
         const chapterItem = checkbox.closest('.chapter-item');
         
         if (this.selectedChapters.has(index)) {
@@ -243,6 +209,8 @@ class BookAI {
     }
 
     selectAllChapters() {
+        if (!this.chaptersList) return;
+        
         const checkboxes = this.chaptersList.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach((checkbox, index) => {
             checkbox.checked = true;
@@ -252,6 +220,8 @@ class BookAI {
     }
 
     deselectAllChapters() {
+        if (!this.chaptersList) return;
+        
         const checkboxes = this.chaptersList.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach((checkbox, index) => {
             checkbox.checked = false;
@@ -267,7 +237,9 @@ class BookAI {
         }
 
         this.showLoading('ИИ анализирует выбранные главы...');
-        this.analyzeChaptersBtn.disabled = true;
+        if (this.analyzeChaptersBtn) {
+            this.analyzeChaptersBtn.disabled = true;
+        }
 
         try {
             const analysis = await this.createChapterAnalysis();
@@ -279,7 +251,9 @@ class BookAI {
             this.showError('Ошибка анализа');
         } finally {
             this.hideLoading();
-            this.analyzeChaptersBtn.disabled = false;
+            if (this.analyzeChaptersBtn) {
+                this.analyzeChaptersBtn.disabled = false;
+            }
         }
     }
 
@@ -290,9 +264,12 @@ class BookAI {
                 const seed = this.createSeed(book.title + book.author);
                 const selectedChapters = Array.from(this.selectedChapters);
                 
-                const chapterNames = Array.from(this.chaptersList.querySelectorAll('.chapter-item label'))
-                    .map(label => label.textContent);
-                const selectedChapterNames = selectedChapters.map(index => chapterNames[index]);
+                let chapterNames = [];
+                if (this.chaptersList) {
+                    chapterNames = Array.from(this.chaptersList.querySelectorAll('.chapter-item label'))
+                        .map(label => label.textContent);
+                }
+                const selectedChapterNames = selectedChapters.map(index => chapterNames[index] || `Глава ${index + 1}`);
 
                 resolve({
                     summary: this.generateChapterSummary(book, seed, selectedChapterNames),
@@ -410,10 +387,6 @@ class BookAI {
         return Math.abs(hash);
     }
 
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
     generatePlaceholderCover(title) {
         const encodedTitle = encodeURIComponent(title.substring(0, 20));
         return `https://via.placeholder.com/150x200/667eea/ffffff?text=${encodedTitle}`;
@@ -498,4 +471,7 @@ class BookAI {
     }
 }
 
-const app = new BookAI();
+// Инициализация после загрузки DOM
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new BookAI();
+});
