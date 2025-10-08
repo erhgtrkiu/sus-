@@ -4,6 +4,7 @@ class BookAI {
         this.bindEvents();
         this.currentBook = null;
         this.bookAnalysis = null;
+        this.selectedChapters = new Set();
     }
 
     initializeElements() {
@@ -21,6 +22,12 @@ class BookAI {
         this.askBtn = document.getElementById('askBtn');
         this.qaResults = document.getElementById('qaResults');
         this.errorMessage = document.getElementById('errorMessage');
+        
+        // Добавляем элементы для глав
+        this.chaptersList = document.getElementById('chaptersList');
+        this.selectAllBtn = document.getElementById('selectAllBtn');
+        this.deselectAllBtn = document.getElementById('deselectAllBtn');
+        this.analyzeChaptersBtn = document.getElementById('analyzeChaptersBtn');
     }
 
     bindEvents() {
@@ -33,6 +40,11 @@ class BookAI {
         this.questionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.askQuestion();
         });
+        
+        // События для глав
+        this.selectAllBtn.addEventListener('click', () => this.selectAllChapters());
+        this.deselectAllBtn.addEventListener('click', () => this.deselectAllChapters());
+        this.analyzeChaptersBtn.addEventListener('click', () => this.analyzeSelectedChapters());
     }
 
     async searchBook() {
@@ -48,6 +60,7 @@ class BookAI {
             const bookData = await this.fetchBookData(query);
             this.currentBook = bookData;
             this.displayBookInfo(bookData);
+            this.generateChapters(bookData);
         } catch (error) {
             this.showError('Книга не найдена');
         } finally {
@@ -69,22 +82,124 @@ class BookAI {
             author: book.authors?.[0] || 'Неизвестен',
             description: book.description || '',
             year: book.publishedDate?.substring(0, 4) || '',
-            pages: book.pageCount || '',
+            pages: book.pageCount || 0,
             cover: book.imageLinks?.thumbnail || this.generatePlaceholderCover(book.title)
         };
     }
 
-    async analyzeBook() {
-        if (!this.currentBook) {
-            this.showError('Сначала найдите книгу');
+    generateChapters(bookData) {
+        const seed = this.createSeed(bookData.title + bookData.author);
+        const rng = this.createRNG(seed);
+        
+        // Генерируем количество глав на основе страниц
+        const chapterCount = bookData.pages > 0 ? 
+            Math.max(3, Math.min(15, Math.floor(bookData.pages / 30))) : 
+            8 + Math.floor(rng() * 7);
+        
+        const chapters = [];
+        for (let i = 1; i <= chapterCount; i++) {
+            // Генерируем название главы из букв
+            const chapterName = this.generateChapterName(rng, i);
+            chapters.push(chapterName);
+        }
+
+        this.displayChaptersList(chapters);
+    }
+
+    generateChapterName(rng, chapterNumber) {
+        const types = ['Глава', 'Часть', 'Книга', 'Том'];
+        const type = types[Math.floor(rng() * types.length)];
+        
+        // Генерируем дополнительное описание из букв
+        let description = '';
+        const wordsCount = 2 + Math.floor(rng() * 3);
+        
+        for (let i = 0; i < wordsCount; i++) {
+            if (i > 0) description += ' ';
+            description += this.generateWordFromLetters(rng, 3 + Math.floor(rng() * 6));
+        }
+        
+        return `${type} ${chapterNumber}: ${description}`;
+    }
+
+    generateWordFromLetters(rng, length) {
+        const vowels = 'аеиоуыэюя';
+        const consonants = 'бвгджзйклмнпрстфхцчшщ';
+        let word = '';
+        
+        for (let i = 0; i < length; i++) {
+            if (i === 0) {
+                // Первая буква - согласная
+                word += consonants[Math.floor(rng() * consonants.length)];
+            } else {
+                // Чередуем гласные и согласные
+                const prevChar = word[word.length - 1];
+                if (vowels.includes(prevChar)) {
+                    word += consonants[Math.floor(rng() * consonants.length)];
+                } else {
+                    word += vowels[Math.floor(rng() * vowels.length)];
+                }
+            }
+        }
+        
+        return word;
+    }
+
+    displayChaptersList(chapters) {
+        this.chaptersList.innerHTML = chapters.map((chapter, index) => `
+            <div class="chapter-item" onclick="app.toggleChapter(${index})">
+                <input type="checkbox" id="chapter-${index}">
+                <label for="chapter-${index}">${chapter}</label>
+            </div>
+        `).join('');
+        
+        this.selectedChapters.clear();
+    }
+
+    toggleChapter(index) {
+        const checkbox = document.getElementById(`chapter-${index}`);
+        const chapterItem = checkbox.closest('.chapter-item');
+        
+        if (this.selectedChapters.has(index)) {
+            this.selectedChapters.delete(index);
+            checkbox.checked = false;
+            chapterItem.classList.remove('selected');
+        } else {
+            this.selectedChapters.add(index);
+            checkbox.checked = true;
+            chapterItem.classList.add('selected');
+        }
+    }
+
+    selectAllChapters() {
+        const checkboxes = this.chaptersList.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach((checkbox, index) => {
+            checkbox.checked = true;
+            this.selectedChapters.add(index);
+            checkbox.closest('.chapter-item').classList.add('selected');
+        });
+    }
+
+    deselectAllChapters() {
+        const checkboxes = this.chaptersList.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach((checkbox, index) => {
+            checkbox.checked = false;
+            this.selectedChapters.delete(index);
+            checkbox.closest('.chapter-item').classList.remove('selected');
+        });
+    }
+
+    async analyzeSelectedChapters() {
+        if (this.selectedChapters.size === 0) {
+            this.showError('Выберите главы для анализа');
             return;
         }
 
-        this.showLoading('ИИ читает и анализирует книгу...');
-        this.analyzeBookBtn.disabled = true;
+        this.showLoading('ИИ анализирует выбранные главы...');
+        this.analyzeChaptersBtn.disabled = true;
 
         try {
-            const analysis = await this.createAIAnalysis();
+            const analysis = await this.createChapterAnalysis();
             this.bookAnalysis = analysis;
             this.displayAnalysis(analysis);
             this.analysisResult.classList.remove('hidden');
@@ -93,33 +208,43 @@ class BookAI {
             this.showError('Ошибка анализа');
         } finally {
             this.hideLoading();
-            this.analyzeBookBtn.disabled = false;
+            this.analyzeChaptersBtn.disabled = false;
         }
     }
 
-    async createAIAnalysis() {
+    async createChapterAnalysis() {
         return new Promise((resolve) => {
             setTimeout(() => {
                 const book = this.currentBook;
                 const seed = this.createSeed(book.title + book.author);
+                const selectedChapters = Array.from(this.selectedChapters);
                 
+                const chapterNames = Array.from(this.chaptersList.querySelectorAll('.chapter-item label'))
+                    .map(label => label.textContent);
+                const selectedChapterNames = selectedChapters.map(index => chapterNames[index]);
+
                 resolve({
-                    summary: this.generateTextFromLetters(book, seed, 500),
+                    summary: this.generateChapterSummary(book, seed, selectedChapterNames),
                     characters: this.generateTextFromLetters(book, seed + 1, 300),
-                    analysis: this.generateTextFromLetters(book, seed + 2, 400)
+                    analysis: this.generateTextFromLetters(book, seed + 2, 400),
+                    selectedChapters: selectedChapterNames
                 });
             }, 3000);
         });
     }
 
-    createSeed(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return Math.abs(hash);
+    generateChapterSummary(book, seed, chapterNames) {
+        const rng = this.createRNG(seed);
+        let summary = `Анализ выбранных глав произведения "${book.title}":\n\n`;
+        
+        chapterNames.forEach((chapterName, index) => {
+            const chapterSeed = seed + index * 100;
+            const chapterRNG = this.createRNG(chapterSeed);
+            const chapterText = this.generateTextFromLetters(book, chapterSeed, 150);
+            summary += `**${chapterName}**\n${chapterText}\n\n`;
+        });
+        
+        return summary;
     }
 
     generateTextFromLetters(book, seed, length) {
@@ -184,22 +309,18 @@ class BookAI {
     }
 
     calculateWordEndProbability(wordLength, rng) {
-        // Вероятность окончания слова увеличивается с его длиной
         const baseProb = 0.1;
         const lengthFactor = wordLength * 0.05;
         return Math.min(baseProb + lengthFactor + (rng() * 0.1), 0.3);
     }
 
     postProcessText(text, book) {
-        // Базовая постобработка для улучшения читаемости
         let sentences = text.split('. ');
         
-        // Добавляем упоминание книги в первое предложение
         if (sentences.length > 0) {
-            sentences[0] = `В произведении "${book.title}" ${sentences[0].toLowerCase()}`;
+            sentences[0] = sentences[0].charAt(0).toUpperCase() + sentences[0].slice(1);
         }
         
-        // Капитализируем предложения
         sentences = sentences.map(sentence => {
             if (sentence.length > 0) {
                 return sentence.charAt(0).toUpperCase() + sentence.slice(1);
@@ -217,6 +338,16 @@ class BookAI {
         };
     }
 
+    createSeed(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
+    }
+
     generatePlaceholderCover(title) {
         const encodedTitle = encodeURIComponent(title.substring(0, 20));
         return `https://via.placeholder.com/150x200/667eea/ffffff?text=${encodedTitle}`;
@@ -231,7 +362,7 @@ class BookAI {
     }
 
     displayAnalysis(analysis) {
-        this.bookSummary.textContent = analysis.summary;
+        this.bookSummary.innerHTML = analysis.summary.replace(/\n\n/g, '<br><br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         this.characters.textContent = analysis.characters;
         this.analysis.textContent = analysis.analysis;
     }
@@ -295,7 +426,7 @@ class BookAI {
         qaItem.innerHTML = `
             <div class="question">❓ ${question}</div>
             <div class="answer">${answer}</div>
-            <div class="source-info">🤖 Ответ сгенерирован ИИ из букв</div>
+            <div class="source-info">🤖 Ответ сгенерирован ИИ</div>
         `;
         this.qaResults.prepend(qaItem);
     }
