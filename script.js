@@ -98,150 +98,117 @@ class BookAI {
     }
 
     async createAIAnalysis() {
-        // Имитируем работу настоящего ИИ
         return new Promise((resolve) => {
             setTimeout(() => {
                 const book = this.currentBook;
-                const uniqueSeed = this.createUniqueSeed(book.title + book.author);
+                const seed = this.createSeed(book.title + book.author);
                 
                 resolve({
-                    summary: this.generateCompleteNovel(book, uniqueSeed),
-                    characters: this.generateLivingCharacters(uniqueSeed),
-                    analysis: this.generateDeepLiteraryAnalysis(book, uniqueSeed)
+                    summary: this.generateTextFromLetters(book, seed, 500),
+                    characters: this.generateTextFromLetters(book, seed + 1, 300),
+                    analysis: this.generateTextFromLetters(book, seed + 2, 400)
                 });
             }, 3000);
         });
     }
 
-    createUniqueSeed(str) {
+    createSeed(str) {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
-            hash = ((hash << 7) - hash) + char;
+            hash = ((hash << 5) - hash) + char;
             hash = hash & hash;
         }
         return Math.abs(hash);
     }
 
-    generateCompleteNovel(book, seed) {
-        // Генерируем полное содержание книги с нуля
+    generateTextFromLetters(book, seed, length) {
         const rng = this.createRNG(seed);
+        let result = '';
+        let sentenceLength = 0;
+        let word = '';
+        let inWord = false;
         
-        const protagonist = this.generateProtagonist(rng);
-        const setting = this.generateSetting(rng);
-        const conflict = this.generateConflict(rng);
-        const journey = this.generateJourney(rng);
-        const climax = this.generateClimax(rng);
-        const resolution = this.generateResolution(rng);
+        const letters = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя ';
+        const vowels = 'аеёиоуыэюя';
+        const consonants = 'бвгджзйклмнпрстфхцчшщ';
 
-        return `
-Роман "${book.title}" рассказывает историю ${protagonist.name}, ${protagonist.description}. 
-Действие происходит ${setting.location}, где ${setting.atmosphere}.
+        for (let i = 0; i < length; i++) {
+            if (!inWord) {
+                // Начинаем новое слово
+                const firstLetter = consonants[Math.floor(rng() * consonants.length)];
+                word = firstLetter.toUpperCase();
+                inWord = true;
+                result += word;
+                word = '';
+                continue;
+            }
 
-${conflict.description} Это приводит к тому, что ${journey.beginning}. 
-По мере развития сюжета ${journey.middle}, и главный герой сталкивается с ${journey.challenges}.
-
-Кульминацией становится ${climax.event}, когда ${climax.realization}. 
-В развязке ${resolution.outcome}, что оставляет ${resolution.legacy}.
-
-${this.generateThematicDepth(rng)}
-        `;
-    }
-
-    generateLivingCharacters(seed) {
-        const rng = this.createRNG(seed);
-        const characters = [];
-        const count = 3 + (rng() % 3);
-
-        for (let i = 0; i < count; i++) {
-            characters.push(this.createCharacter(rng, i === 0));
+            // Продолжаем слово
+            const prevChar = result[result.length - 1].toLowerCase();
+            let nextChar;
+            
+            if (vowels.includes(prevChar)) {
+                // После гласной - согласная
+                nextChar = consonants[Math.floor(rng() * consonants.length)];
+            } else {
+                // После согласной - гласная
+                nextChar = vowels[Math.floor(rng() * vowels.length)];
+            }
+            
+            word += nextChar;
+            result += nextChar;
+            
+            // Решаем, закончить ли слово
+            const wordEndProbability = this.calculateWordEndProbability(word.length, rng);
+            if (rng() < wordEndProbability) {
+                result += ' ';
+                inWord = false;
+                sentenceLength++;
+                
+                // Решаем, закончить ли предложение
+                if (sentenceLength > 5 + Math.floor(rng() * 10)) {
+                    result = result.trim() + '. ';
+                    sentenceLength = 0;
+                }
+            }
         }
 
-        return characters;
+        // Завершаем последнее предложение
+        result = result.trim();
+        if (!result.endsWith('.')) {
+            result += '.';
+        }
+
+        return this.postProcessText(result, book);
     }
 
-    createCharacter(rng, isProtagonist = false) {
-        const name = this.inventName(rng);
-        const background = this.inventBackground(rng);
-        const personality = this.inventPersonality(rng);
-        const motivation = this.inventMotivation(rng);
-        const appearance = this.inventAppearance(rng);
-        const relationships = this.inventRelationships(rng);
-
-        return {
-            name: name,
-            description: `${name} - ${isProtagonist ? 'главный герой' : 'ключевой персонаж'}. ${background} ${personality} ${motivation} ${appearance} ${relationships}`,
-            role: isProtagonist ? 'протагонист' : this.inventRole(rng)
-        };
+    calculateWordEndProbability(wordLength, rng) {
+        // Вероятность окончания слова увеличивается с его длиной
+        const baseProb = 0.1;
+        const lengthFactor = wordLength * 0.05;
+        return Math.min(baseProb + lengthFactor + (rng() * 0.1), 0.3);
     }
 
-    inventName(rng) {
-        const syllables = this.generateSyllables(rng);
-        const firstName = syllables.first[0] + syllables.first[1];
-        const lastName = syllables.last[0] + syllables.last[1] + 'ов';
-        return firstName.charAt(0).toUpperCase() + firstName.slice(1) + ' ' + 
-               lastName.charAt(0).toUpperCase() + lastName.slice(1);
-    }
-
-    generateSyllables(rng) {
-        const consonants = 'бвгджзклмнпрстфхцчшщ';
-        const vowels = 'аеиоуыэюя';
+    postProcessText(text, book) {
+        // Базовая постобработка для улучшения читаемости
+        let sentences = text.split('. ');
         
-        const getRandom = (arr) => arr[Math.floor(rng() * arr.length)];
+        // Добавляем упоминание книги в первое предложение
+        if (sentences.length > 0) {
+            sentences[0] = `В произведении "${book.title}" ${sentences[0].toLowerCase()}`;
+        }
         
-        return {
-            first: [
-                getRandom(consonants) + getRandom(vowels),
-                getRandom(consonants) + getRandom(vowels)
-            ],
-            last: [
-                getRandom(consonants) + getRandom(vowels),
-                getRandom(consonants) + getRandom(vowels)
-            ]
-        };
+        // Капитализируем предложения
+        sentences = sentences.map(sentence => {
+            if (sentence.length > 0) {
+                return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+            }
+            return sentence;
+        });
+        
+        return sentences.join('. ');
     }
-
-    inventBackground(rng) {
-        const elements = [
-            'Родился в семье ученых, с детства погруженный в мир знаний и открытий.',
-            'Вырос в провинциальном городке, мечтая о большом городе и новых возможностях.',
-            'Происходит из древнего рода, несущего на себе груз семейных традиций и ожиданий.',
-            'Воспитывался в интернате, с ранних лет привыкший полагаться только на себя.',
-            'Принадлежит к творческой династии, где искусство было образом жизни.',
-            'Вырос в условиях строгой дисциплины, что сформировало его характер.'
-        ];
-        return elements[Math.floor(rng() * elements.length)];
-    }
-
-    inventPersonality(rng) {
-        const traits = this.combineTraits(rng);
-        return `Обладает ${traits.core}, что проявляется в ${traits.manifestation}.`;
-    }
-
-    combineTraits(rng) {
-        const cores = [
-            'сложным сочетанием аналитического ума и эмоциональной чувствительности',
-            'противоречивой натурой, балансирующей между сомнением и решительностью',
-            'глубокой интуицией, скрытой за внешней рациональностью',
-            'творческим горением, сталкивающимся с практическими ограничениями',
-            'философским складом ума, ищущим смысл в повседневности'
-        ];
-
-        const manifestations = [
-            'его нестандартных подходах к решению проблем',
-            'способности видеть глубину в, казалось бы, обыденных ситуациях',
-            'уникальной манере взаимодействия с окружающими',
-            'постоянном внутреннем диалоге и самоанализе',
-            'непредсказуемых, но всегда осмысленных поступках'
-        ];
-
-        return {
-            core: cores[Math.floor(rng() * cores.length)],
-            manifestation: manifestations[Math.floor(rng() * manifestations.length)]
-        };
-    }
-
-    // ... и так далее для всех методов - каждый генерирует уникальный контент с нуля
 
     createRNG(seed) {
         return function() {
@@ -265,9 +232,7 @@ ${this.generateThematicDepth(rng)}
 
     displayAnalysis(analysis) {
         this.bookSummary.textContent = analysis.summary;
-        this.characters.innerHTML = analysis.characters
-            .map(char => `<div class="character-item">${char.description}</div>`)
-            .join('');
+        this.characters.textContent = analysis.characters;
         this.analysis.textContent = analysis.analysis;
     }
 
@@ -300,18 +265,11 @@ ${this.generateThematicDepth(rng)}
     async generateAnswer(question) {
         return new Promise((resolve) => {
             setTimeout(() => {
-                const rng = this.createRNG(this.createUniqueSeed(question));
-                resolve(this.generateIntelligentResponse(question, rng));
+                const seed = this.createSeed(question + this.currentBook.title);
+                resolve(this.generateTextFromLetters(this.currentBook, seed, 200));
             }, 2000);
         });
     }
-
-    generateIntelligentResponse(question, rng) {
-        // Генерируем уникальный ответ на каждый вопрос
-        return `На основе анализа "${this.currentBook.title}" можно сказать, что ${this.generateInsight(rng)}. ${this.connectToBook(rng)} ${this.provideContext(rng)}`;
-    }
-
-    // ... остальные методы генерируют всё с нуля
 
     showLoading(text) {
         this.loadingText.textContent = text;
@@ -337,7 +295,7 @@ ${this.generateThematicDepth(rng)}
         qaItem.innerHTML = `
             <div class="question">❓ ${question}</div>
             <div class="answer">${answer}</div>
-            <div class="source-info">🤖 Ответ сгенерирован ИИ</div>
+            <div class="source-info">🤖 Ответ сгенерирован ИИ из букв</div>
         `;
         this.qaResults.prepend(qaItem);
     }
