@@ -3,23 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BookAI - Анализ книг из интернета</title>
+    <title>BookAI - Анализ книг ИИ</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🤖 BookAI</h1>
-            <p>Найду книгу и покажу содержание выбранных глав</p>
+            <p>Искусственный интеллект анализирует книги</p>
         </header>
 
         <div class="search-section">
             <div class="input-group">
-                <input type="text" id="bookTitle" placeholder="Введите название книги и автора...">
+                <input type="text" id="bookTitle" placeholder="Введите название книги...">
                 <button id="searchBtn">📚 Найти книгу</button>
-            </div>
-            <div class="examples">
-                <p>Пример: "Классическое произведение", "Известный роман", "Популярная книга"</p>
             </div>
         </div>
 
@@ -30,15 +27,10 @@
                     <h2 id="bookName"></h2>
                     <p id="bookAuthor"></p>
                     <p id="bookDescription"></p>
-                    <div class="book-meta">
-                        <span id="bookYear"></span>
-                        <span id="bookPages"></span>
-                        <span id="bookRating"></span>
-                    </div>
                 </div>
             </div>
 
-            <!-- Блок выбора глав -->
+            <!-- Добавляем блок выбора глав -->
             <div class="chapters-section">
                 <h3>📖 Выберите главы для анализа</h3>
                 <div class="chapters-controls">
@@ -52,37 +44,31 @@
 
         <div id="analysisResult" class="analysis-result hidden">
             <div class="analysis-header">
-                <h2>📊 Анализ выбранных глав</h2>
-                <div class="analysis-stats" id="analysisStats"></div>
+                <h2>📊 Анализ книги</h2>
             </div>
             
             <div class="analysis-content">
                 <div class="analysis-section">
-                    <h3>🎯 Содержание глав</h3>
-                    <div id="chaptersSummary" class="summary-text"></div>
+                    <h3>📖 Содержание</h3>
+                    <div id="bookSummary" class="summary-text"></div>
                 </div>
                 
                 <div class="analysis-section">
-                    <h3>👥 Персонажи в выбранных главах</h3>
+                    <h3>👥 Персонажи</h3>
                     <div id="characters" class="characters-list"></div>
                 </div>
                 
                 <div class="analysis-section">
-                    <h3>💡 Ключевые моменты</h3>
-                    <div id="keyPoints" class="key-points"></div>
+                    <h3>💡 Анализ</h3>
+                    <div id="analysis" class="key-points"></div>
                 </div>
             </div>
         </div>
 
         <div class="qa-section hidden" id="qaSection">
-            <div class="qa-header">
-                <h3>❓ Задайте вопрос о книге</h3>
-                <p>Отвечу на основе содержания выбранных глав</p>
-            </div>
-            
             <div class="question-input">
-                <input type="text" id="questionInput" placeholder="Спросите о сюжете, персонажах или событиях...">
-                <button id="askBtn">🎯 Спросить</button>
+                <input type="text" id="questionInput" placeholder="Задайте вопрос о книге...">
+                <button id="askBtn">🎯 Спросить ИИ</button>
             </div>
             
             <div id="qaResults" class="qa-results"></div>
@@ -90,14 +76,10 @@
 
         <div id="loading" class="loading hidden">
             <div class="spinner"></div>
-            <p id="loadingText">Ищу информацию о книге...</p>
+            <p id="loadingText">ИИ анализирует...</p>
         </div>
 
         <div id="errorMessage" class="error hidden"></div>
-
-        <footer>
-            <p>Использует открытые API для поиска информации о книгах</p>
-        </footer>
     </div>
 
     <script src="script.js"></script>
