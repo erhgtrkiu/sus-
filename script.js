@@ -54,7 +54,7 @@ class BookAI {
             const bookData = await this.generateBookFromNothing(query);
             this.currentBook = bookData;
             this.displayBookInfo(bookData);
-            this.generateChapters(bookData);
+            this.generateChaptersFromNothing(bookData);
         } catch (error) {
             this.showError('Ошибка: ' + error.message);
         } finally {
@@ -70,123 +70,119 @@ class BookAI {
                 
                 resolve({
                     title: query,
-                    author: this.generateAuthorNameFromLetters(rng),
-                    description: this.generateDescriptionFromLetters(rng),
-                    year: this.generateYear(rng),
-                    pages: this.generatePages(rng),
-                    cover: this.generatePlaceholderCover(query)
+                    author: this.generateAuthorFromAtoms(rng),
+                    description: this.generateDescriptionFromAtoms(rng),
+                    year: (1500 + Math.floor(rng() * 500)).toString(),
+                    pages: 100 + Math.floor(rng() * 500),
+                    cover: this.generateCoverFromNothing()
                 });
             }, 1000);
         });
     }
 
-    generateAuthorNameFromLetters(rng) {
-        // Генерируем имя и фамилию из букв без шаблонов
-        const generateNamePart = (length) => {
-            const consonants = 'бвгджзйклмнпрстфхцчшщ';
-            const vowels = 'аеиоуыэюя';
+    generateAuthorFromAtoms(rng) {
+        const consonants = 'бвгджзйклмнпрстфхцчшщ';
+        const vowels = 'аеиоуыэюя';
+        
+        const generateName = (minLen, maxLen, rng) => {
             let name = '';
+            const length = minLen + Math.floor(rng() * (maxLen - minLen));
             
             for (let i = 0; i < length; i++) {
                 if (i === 0) {
                     name += consonants[Math.floor(rng() * consonants.length)].toUpperCase();
-                } else if (i % 2 === 0) {
-                    name += vowels[Math.floor(rng() * vowels.length)];
                 } else {
-                    name += consonants[Math.floor(rng() * consonants.length)];
+                    const prevChar = name[name.length - 1].toLowerCase();
+                    if (consonants.includes(prevChar)) {
+                        name += vowels[Math.floor(rng() * vowels.length)];
+                    } else {
+                        name += consonants[Math.floor(rng() * consonants.length)];
+                    }
                 }
             }
             return name;
         };
 
-        return generateNamePart(3 + Math.floor(rng() * 3)) + ' ' + 
-               generateNamePart(4 + Math.floor(rng() * 3)) + 'ов';
+        return generateName(3, 6, rng) + ' ' + generateName(4, 8, rng);
     }
 
-    generateDescriptionFromLetters(rng) {
-        const words = [];
-        const wordCount = 15 + Math.floor(rng() * 10);
-        
-        for (let i = 0; i < wordCount; i++) {
-            words.push(this.generateWord(rng, 2 + Math.floor(rng() * 6)));
-        }
-        
-        // Собираем предложения
-        let description = '';
-        let sentenceLength = 0;
-        
-        for (let i = 0; i < words.length; i++) {
-            if (i === 0) {
-                description += words[i].charAt(0).toUpperCase() + words[i].slice(1);
-            } else {
-                description += ' ' + words[i];
+    generateDescriptionFromAtoms(rng) {
+        const generateSentence = (wordCount, rng) => {
+            const words = [];
+            for (let i = 0; i < wordCount; i++) {
+                words.push(this.generateWordFromAtoms(2 + Math.floor(rng() * 5), rng));
             }
             
-            sentenceLength++;
-            
-            if (sentenceLength >= 5 + Math.floor(rng() * 5) && i < words.length - 1) {
-                description += '. ';
-                sentenceLength = 0;
-                if (i < words.length - 1) {
-                    description += words[i + 1].charAt(0).toUpperCase() + words[i + 1].slice(1);
-                    i++;
-                }
+            let sentence = words[0].charAt(0).toUpperCase() + words[0].slice(1);
+            for (let i = 1; i < words.length; i++) {
+                sentence += ' ' + words[i];
             }
+            return sentence + '.';
+        };
+
+        const sentences = [];
+        const sentenceCount = 3 + Math.floor(rng() * 2);
+        for (let i = 0; i < sentenceCount; i++) {
+            sentences.push(generateSentence(5 + Math.floor(rng() * 5), rng));
         }
         
-        return description + '.';
+        return sentences.join(' ');
     }
 
-    generateWord(rng, length) {
+    generateWordFromAtoms(length, rng) {
         const consonants = 'бвгджзйклмнпрстфхцчшщ';
         const vowels = 'аеиоуыэюя';
         let word = '';
         
         for (let i = 0; i < length; i++) {
-            if (i % 2 === 0) {
+            if (i === 0) {
                 word += consonants[Math.floor(rng() * consonants.length)];
             } else {
-                word += vowels[Math.floor(rng() * vowels.length)];
+                const prevChar = word[word.length - 1];
+                if (consonants.includes(prevChar)) {
+                    word += vowels[Math.floor(rng() * vowels.length)];
+                } else {
+                    word += consonants[Math.floor(rng() * consonants.length)];
+                }
             }
         }
-        
         return word;
     }
 
-    generateYear(rng) {
-        return (1500 + Math.floor(rng() * 500)).toString();
-    }
-
-    generatePages(rng) {
-        return 100 + Math.floor(rng() * 500);
-    }
-
-    generateChapters(bookData) {
+    generateChaptersFromNothing(bookData) {
         if (!this.elements.chaptersList) return;
         
         const seed = this.createSeed(bookData.title + bookData.author);
         const rng = this.createRNG(seed);
         
-        const chapterCount = 5 + Math.floor(rng() * 10);
         const chapters = [];
+        const structureType = Math.floor(rng() * 3);
         
-        for (let i = 1; i <= chapterCount; i++) {
-            chapters.push(this.generateChapterName(rng, i));
+        if (structureType === 0) {
+            // Только главы
+            const count = 5 + Math.floor(rng() * 10);
+            for (let i = 1; i <= count; i++) {
+                chapters.push(`Глава ${i}`);
+            }
+        } else if (structureType === 1) {
+            // Тома с главами
+            const volumes = 2 + Math.floor(rng() * 2);
+            for (let v = 1; v <= volumes; v++) {
+                chapters.push(`Том ${v}`);
+                const chaptersInVolume = 3 + Math.floor(rng() * 5);
+                for (let c = 1; c <= chaptersInVolume; c++) {
+                    chapters.push(`Глава ${c}`);
+                }
+            }
+        } else {
+            // Части
+            const parts = 3 + Math.floor(rng() * 4);
+            for (let i = 1; i <= parts; i++) {
+                chapters.push(`Часть ${i}`);
+            }
         }
 
         this.displayChaptersList(chapters);
-    }
-
-    generateChapterName(rng, number) {
-        const types = this.generateWord(rng, 1) + 'лава';
-        const descriptionWords = [];
-        const wordCount = 2 + Math.floor(rng() * 3);
-        
-        for (let i = 0; i < wordCount; i++) {
-            descriptionWords.push(this.generateWord(rng, 3 + Math.floor(rng() * 4)));
-        }
-        
-        return `${types} ${number}: ${descriptionWords.join(' ')}`;
     }
 
     async analyzeBook() {
@@ -201,7 +197,7 @@ class BookAI {
         }
 
         try {
-            const analysis = await this.createAIAnalysis();
+            const analysis = await this.createAnalysisFromNothing();
             this.bookAnalysis = analysis;
             this.displayAnalysis(analysis);
             this.elements.analysisResult.classList.remove('hidden');
@@ -216,122 +212,250 @@ class BookAI {
         }
     }
 
-    async createAIAnalysis() {
+    async createAnalysisFromNothing() {
         return new Promise((resolve) => {
             setTimeout(() => {
                 const book = this.currentBook;
                 const seed = this.createSeed(book.title + book.author);
+                const rng = this.createRNG(seed);
 
                 resolve({
-                    summary: this.generateNovelContent(book, seed),
-                    characters: this.generateCharacters(book, seed),
-                    analysis: this.generateLiteraryAnalysis(book, seed)
+                    summary: this.generateSummaryFromAtoms(book, rng),
+                    characters: this.generateCharactersFromAtoms(rng),
+                    analysis: this.generateAnalysisFromAtoms(rng)
                 });
             }, 3000);
         });
     }
 
-    generateNovelContent(book, seed) {
-        const rng = this.createRNG(seed);
+    generateSummaryFromAtoms(book, rng) {
         const paragraphs = [];
-        
         for (let i = 0; i < 3; i++) {
-            paragraphs.push(this.generateParagraph(rng, 50 + Math.floor(rng() * 50)));
+            paragraphs.push(this.generateParagraphFromAtoms(30 + Math.floor(rng() * 20), rng));
         }
-        
-        return `Роман "${book.title}" рассказывает историю, которая начинается с того, что ${paragraphs[0]}\n\n${paragraphs[1]}\n\n${paragraphs[2]}`;
+        return paragraphs.join('\n\n');
     }
 
-    generateParagraph(rng, wordCount) {
+    generateParagraphFromAtoms(wordCount, rng) {
         const words = [];
         for (let i = 0; i < wordCount; i++) {
-            words.push(this.generateWord(rng, 2 + Math.floor(rng() * 6)));
+            words.push(this.generateWordFromAtoms(2 + Math.floor(rng() * 5), rng));
         }
         
-        let paragraph = '';
-        let sentenceLength = 0;
+        let paragraph = words[0].charAt(0).toUpperCase() + words[0].slice(1);
+        let sentenceLength = 1;
         
-        for (let i = 0; i < words.length; i++) {
-            if (i === 0) {
-                paragraph += words[i].charAt(0).toUpperCase() + words[i].slice(1);
-            } else {
-                paragraph += ' ' + words[i];
-            }
-            
+        for (let i = 1; i < words.length; i++) {
+            paragraph += ' ' + words[i];
             sentenceLength++;
             
-            if (sentenceLength >= 7 + Math.floor(rng() * 5) && i < words.length - 1) {
-                paragraph += '. ';
+            if (sentenceLength >= 7 + Math.floor(rng() * 3) && i < words.length - 1) {
+                paragraph += '. ' + words[i + 1].charAt(0).toUpperCase() + words[i + 1].slice(1);
                 sentenceLength = 0;
-                if (i < words.length - 1) {
-                    paragraph += words[i + 1].charAt(0).toUpperCase() + words[i + 1].slice(1);
-                    i++;
-                }
+                i++;
             }
         }
         
         return paragraph + '.';
     }
 
-    generateCharacters(book, seed) {
-        const rng = this.createRNG(seed);
+    generateCharactersFromAtoms(rng) {
         const characters = [];
         const count = 3 + Math.floor(rng() * 3);
         
         for (let i = 0; i < count; i++) {
-            const name = this.generateAuthorNameFromLetters(rng);
-            const description = this.generateCharacterDescription(rng);
+            const name = this.generateAuthorFromAtoms(rng);
+            const description = this.generateCharacterDescriptionFromAtoms(rng);
             characters.push(`${name} - ${description}`);
         }
         
         return characters.join('\n');
     }
 
-    generateCharacterDescription(rng) {
+    generateCharacterDescriptionFromAtoms(rng) {
         const traits = [];
         const traitCount = 2 + Math.floor(rng() * 2);
         
         for (let i = 0; i < traitCount; i++) {
-            traits.push(this.generateTrait(rng));
+            const adj = this.generateWordFromAtoms(3 + Math.floor(rng() * 3), rng);
+            const noun = this.generateWordFromAtoms(4 + Math.floor(rng() * 3), rng);
+            traits.push(`${adj} ${noun}`);
         }
         
         return traits.join(', ');
     }
 
-    generateTrait(rng) {
-        const patterns = [
-            () => this.generateWord(rng, 3) + 'ый ' + this.generateWord(rng, 4) + 'ель',
-            () => this.generateWord(rng, 2) + 'ый ' + this.generateWord(rng, 3) + 'ик',
-            () => this.generateWord(rng, 4) + 'ющий ' + this.generateWord(rng, 3) + 'ство',
-            () => this.generateWord(rng, 3) + 'ая ' + this.generateWord(rng, 4) + 'ница'
-        ];
-        
-        return patterns[Math.floor(rng() * patterns.length)]();
-    }
-
-    generateLiteraryAnalysis(book, seed) {
-        const rng = this.createRNG(seed);
-        const analysisPoints = [];
-        const pointCount = 4 + Math.floor(rng() * 2);
+    generateAnalysisFromAtoms(rng) {
+        const points = [];
+        const pointCount = 3 + Math.floor(rng() * 2);
         
         for (let i = 0; i < pointCount; i++) {
-            analysisPoints.push(this.generateAnalysisPoint(rng));
+            const point = this.generateAnalysisPointFromAtoms(rng);
+            points.push(point);
         }
         
-        return analysisPoints.join('\n\n');
+        return points.join('\n\n');
     }
 
-    generateAnalysisPoint(rng) {
+    generateAnalysisPointFromAtoms(rng) {
         const structures = [
-            () => `Автор использует ${this.generateWord(rng, 3)} ${this.generateWord(rng, 4)} для раскрытия ${this.generateWord(rng, 3)} ${this.generateWord(rng, 4)}`,
-            () => `В произведении прослеживается ${this.generateWord(rng, 4)} ${this.generateWord(rng, 3)} как отражение ${this.generateWord(rng, 3)} ${this.generateWord(rng, 4)}`,
-            () => `Художественное своеобразие проявляется в ${this.generateWord(rng, 3)} ${this.generateWord(rng, 4)} и ${this.generateWord(rng, 3)} ${this.generateWord(rng, 4)}`
+            () => {
+                const subject = this.generateWordFromAtoms(4, rng);
+                const verb = this.generateWordFromAtoms(3, rng);
+                const object = this.generateWordFromAtoms(5, rng);
+                return `${subject.charAt(0).toUpperCase() + subject.slice(1)} ${verb} ${object}`;
+            },
+            () => {
+                const technique = this.generateWordFromAtoms(5, rng);
+                const purpose = this.generateWordFromAtoms(4, rng);
+                return `Используется ${technique} для ${purpose}`;
+            },
+            () => {
+                const element = this.generateWordFromAtoms(4, rng);
+                const effect = this.generateWordFromAtoms(5, rng);
+                return `${element.charAt(0).toUpperCase() + element.slice(1)} создаёт ${effect}`;
+            }
         ];
         
         return structures[Math.floor(rng() * structures.length)]();
     }
 
-    // ... остальные методы (toggleChapter, selectAllChapters и т.д.) остаются без изменений
+    toggleChapter(index) {
+        const checkbox = document.getElementById(`chapter-${index}`);
+        if (!checkbox) return;
+        
+        const chapterItem = checkbox.closest('.chapter-item');
+        
+        if (this.selectedChapters.has(index)) {
+            this.selectedChapters.delete(index);
+            checkbox.checked = false;
+            chapterItem.classList.remove('selected');
+        } else {
+            this.selectedChapters.add(index);
+            checkbox.checked = true;
+            chapterItem.classList.add('selected');
+        }
+    }
+
+    selectAllChapters() {
+        if (!this.elements.chaptersList) return;
+        
+        const checkboxes = this.elements.chaptersList.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach((checkbox, index) => {
+            checkbox.checked = true;
+            this.selectedChapters.add(index);
+            checkbox.closest('.chapter-item').classList.add('selected');
+        });
+    }
+
+    deselectAllChapters() {
+        if (!this.elements.chaptersList) return;
+        
+        const checkboxes = this.elements.chaptersList.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach((checkbox, index) => {
+            checkbox.checked = false;
+            this.selectedChapters.delete(index);
+            checkbox.closest('.chapter-item').classList.remove('selected');
+        });
+    }
+
+    async analyzeSelectedChapters() {
+        if (this.selectedChapters.size === 0) {
+            this.showError('Выберите главы для анализа');
+            return;
+        }
+
+        this.showLoading('ИИ анализирует выбранные главы...');
+        if (this.elements.analyzeChaptersBtn) {
+            this.elements.analyzeChaptersBtn.disabled = true;
+        }
+
+        try {
+            const analysis = await this.createChapterAnalysis();
+            this.bookAnalysis = analysis;
+            this.displayAnalysis(analysis);
+            this.elements.analysisResult.classList.remove('hidden');
+            this.elements.qaSection.classList.remove('hidden');
+        } catch (error) {
+            this.showError('Ошибка анализа');
+        } finally {
+            this.hideLoading();
+            if (this.elements.analyzeChaptersBtn) {
+                this.elements.analyzeChaptersBtn.disabled = false;
+            }
+        }
+    }
+
+    async createChapterAnalysis() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const book = this.currentBook;
+                const seed = this.createSeed(book.title + book.author);
+                const selectedChapters = Array.from(this.selectedChapters);
+                
+                let chapterNames = [];
+                if (this.elements.chaptersList) {
+                    chapterNames = Array.from(this.elements.chaptersList.querySelectorAll('.chapter-item label'))
+                        .map(label => label.textContent);
+                }
+                const selectedChapterNames = selectedChapters.map(index => chapterNames[index] || `Раздел ${index + 1}`);
+
+                resolve({
+                    summary: this.generateChapterSummary(book, seed, selectedChapterNames),
+                    characters: this.generateCharactersFromAtoms(this.createRNG(seed + 1)),
+                    analysis: this.generateAnalysisFromAtoms(this.createRNG(seed + 2)),
+                    selectedChapters: selectedChapterNames
+                });
+            }, 2000);
+        });
+    }
+
+    generateChapterSummary(book, seed, chapterNames) {
+        const rng = this.createRNG(seed);
+        let summary = `Анализ выбранных разделов произведения "${book.title}":\n\n`;
+        
+        chapterNames.forEach((chapterName, index) => {
+            const chapterSeed = seed + index * 100;
+            const chapterRNG = this.createRNG(chapterSeed);
+            const chapterText = this.generateParagraphFromAtoms(20 + Math.floor(chapterRNG() * 10), chapterRNG);
+            summary += `**${chapterName}**\n${chapterText}\n\n`;
+        });
+        
+        return summary;
+    }
+
+    displayChaptersList(chapters) {
+        if (!this.elements.chaptersList) return;
+        
+        this.elements.chaptersList.innerHTML = chapters.map((chapter, index) => `
+            <div class="chapter-item" onclick="app.toggleChapter(${index})">
+                <input type="checkbox" id="chapter-${index}">
+                <label for="chapter-${index}">${chapter}</label>
+            </div>
+        `).join('');
+        
+        this.selectedChapters.clear();
+    }
+
+    generateCoverFromNothing() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 150;
+        canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        
+        // Случайный цвет
+        const hue = Math.floor(Math.random() * 360);
+        ctx.fillStyle = `hsl(${hue}, 70%, 80%)`;
+        ctx.fillRect(0, 0, 150, 200);
+        
+        // Текст
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('КНИГА', 75, 100);
+        
+        return canvas.toDataURL();
+    }
 
     createRNG(seed) {
         return function() {
@@ -350,11 +474,6 @@ class BookAI {
         return Math.abs(hash);
     }
 
-    generatePlaceholderCover(title) {
-        const encodedTitle = encodeURIComponent(title.substring(0, 20));
-        return `https://via.placeholder.com/150x200/667eea/ffffff?text=${encodedTitle}`;
-    }
-
     displayBookInfo(bookData) {
         this.elements.bookName.textContent = bookData.title;
         this.elements.bookAuthor.textContent = `Автор: ${bookData.author}`;
@@ -364,7 +483,7 @@ class BookAI {
     }
 
     displayAnalysis(analysis) {
-        this.elements.bookSummary.textContent = analysis.summary;
+        this.elements.bookSummary.innerHTML = analysis.summary.replace(/\n\n/g, '<br><br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         this.elements.characters.textContent = analysis.characters;
         this.elements.analysis.textContent = analysis.analysis;
     }
@@ -400,8 +519,8 @@ class BookAI {
             setTimeout(() => {
                 const seed = this.createSeed(question + this.currentBook.title);
                 const rng = this.createRNG(seed);
-                resolve(this.generateParagraph(rng, 30 + Math.floor(rng() * 20)));
-            }, 2000);
+                resolve(this.generateParagraphFromAtoms(25 + Math.floor(rng() * 15), rng));
+            }, 1500);
         });
     }
 
@@ -429,7 +548,7 @@ class BookAI {
         qaItem.innerHTML = `
             <div class="question">❓ ${question}</div>
             <div class="answer">${answer}</div>
-            <div class="source-info">🤖 Ответ сгенерирован ИИ из ничего</div>
+            <div class="source-info">🤖 Ответ сгенерирован ИИ</div>
         `;
         this.elements.qaResults.prepend(qaItem);
     }
